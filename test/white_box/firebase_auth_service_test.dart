@@ -79,7 +79,7 @@ void main() {
             message: 'Operacion no permitida.',
           ),
         ),
-        'Operacion no permitida.',
+        'El registro con correo no está activado en Firebase.',
       );
       expect(
         mapFirebaseAuthError(FirebaseAuthException(code: 'unknown')),

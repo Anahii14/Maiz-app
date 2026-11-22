@@ -1,17 +1,25 @@
-# mi_app
+# AgroCare (mi_app)
 
-A new Flutter project.
+App Flutter para detectar enfermedades del maíz. Usa Firebase (Authentication + Firestore)
+en el proyecto **agrocare-maiz-tesis**.
 
-## Getting Started
+## Configuración (una sola vez)
 
-This project is a starting point for a Flutter application.
+1. Copia `.env.example.json` a `.env.json` y rellena los valores
+   (Consola Firebase > Configuración del proyecto > Tus apps). `.env.json` no se sube a git.
+2. Para Android, descarga `google-services.json` de la app Android y ponlo en
+   `android/app/google-services.json` (tampoco se sube a git).
 
-A few resources to get you started if this is your first Flutter project:
+## Ejecutar
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```powershell
+flutter run --dart-define-from-file=.env.json
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+En VS Code basta con pulsar *Run* (la configuración está en `.vscode/launch.json`).
+
+## Firebase
+
+- Reglas de Firestore: `firestore.rules` (cada usuario solo accede a sus datos).
+- Publicar reglas y config de Auth: `firebase.cmd deploy --only "auth,firestore"`
+- Datos: `users/{uid}` (perfil), `users/{uid}/plants`, `users/{uid}/analyses`.

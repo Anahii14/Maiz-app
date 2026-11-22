@@ -34,17 +34,24 @@ class AuthManager {
   late final loginCommand = Command.createAsync<LoginRequest, AppUser>(
     (request) => _authService.login(
       email: request.email.trim(),
-      password: request.password.trim(),
+      // La contraseña NO se recorta: los espacios forman parte de ella.
+      password: request.password,
     ),
     initialValue: AppUser.empty,
   );
 
   late final registerCommand = Command.createAsync<RegisterRequest, AppUser>(
-    (request) => _authService.register(
-      email: request.email.trim(),
-      password: request.password.trim(),
-      name: request.name.trim(),
-    ),
+    (request) async {
+      final user = await _authService.register(
+        email: request.email.trim(),
+        password: request.password,
+        name: request.name.trim(),
+      );
+      // authStateChanges() se dispara antes de guardar el nombre, así que
+      // actualizamos la sesión con el nombre correcto.
+      await _ensureUserSession(user);
+      return user;
+    },
     initialValue: AppUser.empty,
   );
 
@@ -104,10 +111,29 @@ class AuthManager {
     _userState.dispose();
   }
 
-  Future<void> _ensureUserSession(AppUser user) async {
+  // Cola para que abrir/cerrar la sesión nunca ocurra dos veces a la vez
+  // (por ejemplo, authStateChanges y el registro llegan casi juntos).
+  Future<void> _sessionQueue = Future.value();
+
+  Future<void> _enqueue(Future<void> Function() action) {
+    final next = _sessionQueue.then((_) => action());
+    _sessionQueue = next.catchError((_) {});
+    return next;
+  }
+
+  Future<void> _ensureUserSession(AppUser user) =>
+      _enqueue(() => _openUserSession(user));
+
+  Future<void> _clearUserSession() => _enqueue(_closeUserSession);
+
+  Future<void> _openUserSession(AppUser user) async {
     if (di.isRegistered<AppUser>()) {
       final current = di<AppUser>();
       if (current.id == user.id) {
+        if (current.name != user.name || current.email != user.email) {
+          di.unregister<AppUser>();
+          di.registerSingleton<AppUser>(user);
+        }
         _userState.value = user;
         return;
       }
@@ -157,7 +183,7 @@ class AuthManager {
     _userState.value = user;
   }
 
-  Future<void> _clearUserSession() async {
+  Future<void> _closeUserSession() async {
     if (di.isRegistered<AppUser>()) {
       await di.popScope();
     }

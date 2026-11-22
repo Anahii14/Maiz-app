@@ -43,3 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Configuración de Firebase con claves (no subir a git)
+.env.json
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+firebase-debug.log
+.cuentas_de_prueba.local.txt

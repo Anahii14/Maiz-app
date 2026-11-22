@@ -1,0 +1,41 @@
+rules_version = '2';
+
+// Reglas de seguridad de AgroCare.
+// Cada usuario solo puede leer y escribir SUS propios datos.
+// Todo lo que no esté permitido aquí abajo queda bloqueado.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Perfil del usuario: users/{uid}
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && request.resource.data.keys().hasOnly(['name', 'email', 'createdAt', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.email == request.auth.token.email;
+      allow delete: if false;
+
+      // Plantas del usuario: users/{uid}/plants/{plantId}
+      match /plants/{plantId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Análisis de hojas: users/{uid}/analyses/{analysisId}
+      match /analyses/{analysisId} {
+        allow read, create: if isOwner(userId);
+        allow update, delete: if false;
+      }
+    }
+
+    // Cualquier otra ruta: prohibida.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
