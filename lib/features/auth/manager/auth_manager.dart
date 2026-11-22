@@ -114,52 +114,45 @@ class AuthManager {
       await di.popScope();
     }
 
-    di.pushNewScope(
-      scopeName: 'user-session',
-      init: (scope) {
-        scope.registerSingleton<AppUser>(user);
+    di.pushNewScope(scopeName: 'user-session');
 
-        scope.registerLazySingletonAsync<PlantsManager>(
-          () => PlantsManager(
-            user: user,
-            service: di<PlantsDataSource>(),
-          ).init(),
-          dispose: (manager) => manager.dispose(),
-        );
+    di.registerSingleton<AppUser>(user);
 
-        scope.registerLazySingletonAsync<AnalysisManager>(
-          () async {
-            final plantsManager = await di.getAsync<PlantsManager>();
-
-            return AnalysisManager(
-              userId: user.id,
-              service: di<AnalysisDataSource>(),
-              plantsManager: plantsManager,
-            ).init();
-          },
-          dispose: (manager) => manager.dispose(),
-        );
-
-        scope.registerLazySingleton<CameraManager>(
-          () => CameraManager(
-            cameraService: di<CameraService>(),
-            plantsManager: di<PlantsManager>(),
-            analysisManager: di<AnalysisManager>(),
-          ),
-        );
-
-        scope.registerLazySingleton<AiChatManager>(
-          () => AiChatManager(
-            chatService: di<AiChatService>(),
-            plantsManager: di<PlantsManager>(),
-            analysisManager: di<AnalysisManager>(),
-          ),
-          dispose: (manager) => manager.dispose(),
-        );
-      },
+    final plantsManager = await PlantsManager(
+      user: user,
+      service: di<PlantsDataSource>(),
+    ).init();
+    di.registerSingleton<PlantsManager>(
+      plantsManager,
+      dispose: (manager) => manager.dispose(),
     );
 
-    await di.allReady();
+    final analysisManager = await AnalysisManager(
+      userId: user.id,
+      service: di<AnalysisDataSource>(),
+      plantsManager: plantsManager,
+    ).init();
+    di.registerSingleton<AnalysisManager>(
+      analysisManager,
+      dispose: (manager) => manager.dispose(),
+    );
+
+    di.registerLazySingleton<CameraManager>(
+      () => CameraManager(
+        cameraService: di<CameraService>(),
+        plantsManager: plantsManager,
+        analysisManager: analysisManager,
+      ),
+    );
+
+    di.registerLazySingleton<AiChatManager>(
+      () => AiChatManager(
+        chatService: di<AiChatService>(),
+        plantsManager: plantsManager,
+        analysisManager: analysisManager,
+      ),
+      dispose: (manager) => manager.dispose(),
+    );
 
     _userState.value = user;
   }

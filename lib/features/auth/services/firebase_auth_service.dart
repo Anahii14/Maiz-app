@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../../_shared/errors/exceptions.dart';
@@ -5,8 +6,10 @@ import '../model/app_user.dart';
 
 class FirebaseAuthService {
   final FirebaseAuth firebaseAuth;
+  final FirebaseFirestore firestore;
 
-  FirebaseAuthService(this.firebaseAuth);
+  FirebaseAuthService(this.firebaseAuth, [FirebaseFirestore? firestore])
+      : firestore = firestore ?? FirebaseFirestore.instance;
 
   Stream<User?> authStateChanges() => firebaseAuth.authStateChanges();
 
@@ -61,6 +64,11 @@ class FirebaseAuthService {
       if (refreshedUser == null) {
         throw ServerException('No se pudo actualizar el perfil.');
       }
+      await firestore.collection('users').doc(refreshedUser.uid).set({
+        'name': name.trim(),
+        'email': refreshedUser.email ?? email.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
       return mapUser(refreshedUser);
     } on FirebaseAuthException catch (e) {
       throw ServerException(_mapError(e));
