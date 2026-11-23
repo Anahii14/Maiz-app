@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:watch_it/watch_it.dart';
 
 import '../../analysis/manager/analysis_manager.dart';
+import '../../analysis/config/disease_catalog.dart';
 import '../../analysis/model/analysis_dto.dart';
+import '../../analysis/pages/analysis_result_page.dart';
 
 enum HistoryFilter { todos, hoja, terreno }
 
@@ -55,8 +57,7 @@ class _HistoryPageState extends State<HistoryPage> {
             ButtonSegment(value: HistoryFilter.terreno, label: Text('Terreno')),
           ],
           selected: {_filter},
-          onSelectionChanged: (value) =>
-              setState(() => _filter = value.first),
+          onSelectionChanged: (value) => setState(() => _filter = value.first),
         ),
         const SizedBox(height: 16),
         if (filtered.isEmpty)
@@ -91,108 +92,85 @@ class _AnalysisHistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final dto = entry.dto;
     final colors = Theme.of(context).colorScheme;
+    final info = DiseaseCatalog.of(dto.label);
+    final text = Theme.of(context).textTheme;
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    dto.type == AnalysisType.hoja
-                        ? Icons.eco_rounded
-                        : Icons.landscape_rounded,
-                    color: colors.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        dto.plantName,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      Text(
-                        dto.result,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _InfoTag(
-                  label: dto.isHealthy ? 'Cultivo saludable' : dto.disease,
-                ),
-                _InfoTag(
-                  label: '${dto.affectionPercent.toStringAsFixed(0)}% afectación',
-                ),
-                _InfoTag(label: _formatDate(dto.date)),
-                _InfoTag(label: dto.type.label),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () => _showRecommendations(context, dto),
-                child: const Text('Ver recomendaciones'),
-              ),
-            ),
-          ],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AnalysisResultPage(result: ResultView.fromDto(dto)),
+          ),
         ),
-      ),
-    );
-  }
-
-  void _showRecommendations(BuildContext context, AnalysisDto dto) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Recomendaciones',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            ...dto.recommendations.map(
-              (r) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: SizedBox(
+                  width: 76,
+                  height: 76,
+                  child: dto.photo != null
+                      ? Image.memory(dto.photo!, fit: BoxFit.cover)
+                      : Container(
+                          color: colors.surfaceContainerHighest,
+                          child: Icon(info.icon, color: info.color),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('• '),
-                    Expanded(child: Text(r)),
+                    Row(
+                      children: [
+                        Icon(info.icon, size: 18, color: info.color),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            info.name,
+                            style: text.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: info.color,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${dto.plantName} · ${_formatDate(dto.date)}',
+                      style: text.bodySmall,
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (!dto.isHealthy && dto.affectionPercent != null)
+                          _InfoTag(
+                            label:
+                                '${dto.affectionPercent!.toStringAsFixed(1)}% afectado',
+                          ),
+                        if (!dto.isHealthy)
+                          SeverityBadge(severity: dto.severity, compact: true),
+                        _InfoTag(
+                          label:
+                              'Confianza ${(dto.confidence * 100).toStringAsFixed(0)}%',
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
-            ),
-          ],
+              Icon(Icons.chevron_right_rounded, color: colors.outline),
+            ],
+          ),
         ),
       ),
     );
@@ -201,7 +179,9 @@ class _AnalysisHistoryCard extends StatelessWidget {
   String _formatDate(DateTime date) {
     final d = date.day.toString().padLeft(2, '0');
     final m = date.month.toString().padLeft(2, '0');
-    return '$d/$m/${date.year}';
+    final h = date.hour.toString().padLeft(2, '0');
+    final min = date.minute.toString().padLeft(2, '0');
+    return '$d/$m/${date.year} $h:$min';
   }
 }
 

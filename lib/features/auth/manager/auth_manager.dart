@@ -137,10 +137,10 @@ class AuthManager {
         _userState.value = user;
         return;
       }
-      await di.popScope();
     }
+    await _dropSessionScope();
 
-    di.pushNewScope(scopeName: 'user-session');
+    di.pushNewScope(scopeName: _sessionScope);
 
     di.registerSingleton<AppUser>(user);
 
@@ -184,10 +184,17 @@ class AuthManager {
   }
 
   Future<void> _closeUserSession() async {
-    if (di.isRegistered<AppUser>()) {
-      await di.popScope();
-    }
+    await _dropSessionScope();
     _userState.value = null;
+  }
+
+  static const _sessionScope = 'user-session';
+
+  /// Quita la zona de la sesión solo si existe (nunca la zona base de la app).
+  Future<void> _dropSessionScope() async {
+    if (di.hasScope(_sessionScope)) {
+      await di.dropScope(_sessionScope);
+    }
   }
 
   String _errorMessage(CommandError error) {

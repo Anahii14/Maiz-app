@@ -27,7 +27,7 @@ void main() {
       expect(find.text('Resumen General'), findsOneWidget);
       expect(find.text('Acciones Rápidas'), findsOneWidget);
       expect(find.text('Inicio'), findsWidgets);
-      expect(find.text('Plantas'), findsWidgets);
+      expect(find.text('Mis Plantas'), findsWidgets);
       expect(find.text('Historial'), findsWidgets);
       expect(find.text('Biblioteca'), findsWidgets);
     });
@@ -36,10 +36,11 @@ void main() {
       await pumpTestApp(tester, home: const HomePage(), withAuth: false);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Plantas').last);
+      await tester.tap(find.text('Mis Plantas').last);
       await tester.pumpAndSettle();
 
-      expect(find.text('Mis Plantas'), findsOneWidget);
+      // Título de la sección + etiqueta de la barra inferior.
+      expect(find.text('Mis Plantas'), findsNWidgets(2));
       expect(find.text('Nueva Planta'), findsOneWidget);
     });
   });

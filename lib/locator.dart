@@ -6,6 +6,8 @@ import '_shared/services/interaction_manager.dart';
 import 'features/ai/services/ai_chat_service.dart';
 import 'features/analysis/services/analysis_data_source.dart';
 import 'features/analysis/services/analysis_firestore_service.dart';
+import 'features/analysis/services/disease_classifier.dart';
+import 'features/analysis/services/leaf_analyzer.dart';
 import 'features/auth/manager/auth_manager.dart';
 import 'features/auth/services/firebase_auth_service.dart';
 import 'features/camera/services/camera_service.dart';
@@ -17,10 +19,8 @@ final getIt = GetIt.instance;
 void configureDependencies() {
   getIt.registerSingleton<InteractionManager>(InteractionManager());
   getIt.registerLazySingleton<FirebaseAuthService>(
-    () => FirebaseAuthService(
-      FirebaseAuth.instance,
-      FirebaseFirestore.instance,
-    ),
+    () =>
+        FirebaseAuthService(FirebaseAuth.instance, FirebaseFirestore.instance),
   );
   getIt.registerLazySingleton<PlantsFirestoreService>(
     () => PlantsFirestoreService(FirebaseFirestore.instance),
@@ -33,6 +33,10 @@ void configureDependencies() {
   );
   getIt.registerLazySingleton<AnalysisDataSource>(
     () => getIt<AnalysisFirestoreService>(),
+  );
+  // Modelo TFLite real (offline). Se carga la primera vez que se analiza.
+  getIt.registerLazySingleton<LeafAnalyzer>(
+    () => LeafAnalyzer(createDiseaseClassifier()),
   );
   getIt.registerLazySingleton<CameraService>(() => CameraService());
   getIt.registerLazySingleton<AiChatService>(() => AiChatService());

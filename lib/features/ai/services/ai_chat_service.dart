@@ -1,3 +1,4 @@
+import '../../analysis/config/recommendations.dart';
 import '../../analysis/model/analysis_dto.dart';
 import '../../plants/model/plant_dto.dart';
 import '../../plants/model/plant_status.dart';
@@ -60,7 +61,7 @@ class AiChatService {
     if (latest.isNotEmpty) {
       final last = latest.first;
       buffer.write(
-        'Último análisis (${_formatDate(last.date)}): ${last.disease} con ${last.affectionPercent.toStringAsFixed(0)}% de afectación. ',
+        'Último análisis (${_formatDate(last.date)}): ${last.summary}. ',
       );
     } else {
       buffer.write(
@@ -72,11 +73,15 @@ class AiChatService {
       case PlantStatus.saludable:
         buffer.write('Continúa el monitoreo semanal.');
       case PlantStatus.enObservacion:
-        buffer.write('Vigila nuevas manchas y considera un fungicida preventivo.');
+        buffer.write(
+          'Vigila nuevas manchas y considera un fungicida preventivo.',
+        );
       case PlantStatus.enfermo:
         buffer.write('Aplica tratamiento y repite análisis en 5 a 7 días.');
       case PlantStatus.critico:
-        buffer.write('Acción urgente: aislar zona y consultar extensión agrícola.');
+        buffer.write(
+          'Acción urgente: aislar zona y consultar extensión agrícola.',
+        );
     }
 
     return buffer.toString();
@@ -91,7 +96,11 @@ class AiChatService {
 
     final latest = sorted.firstOrNull;
     if (latest != null && !latest.isHealthy) {
-      final tips = latest.recommendations.take(3).join('\n• ');
+      final recs = Recommendations.byLabel[latest.label];
+      final source = Recommendations.chemicalRecommended(latest.severity)
+          ? recs?.chemical
+          : recs?.prevention;
+      final tips = (source ?? const <String>[]).take(3).join('\n• ');
       return 'Para ${latest.disease} detectado en ${latest.plantName}:\n• $tips';
     }
 

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mi_app/app/routes.dart';
 import 'package:mi_app/features/analysis/pages/analysis_flow_page.dart';
-import 'package:mi_app/features/auth/pages/landing_page.dart';
 import 'package:mi_app/features/auth/pages/login_page.dart';
 import 'package:mi_app/features/auth/pages/register_page.dart';
 import 'package:mi_app/features/home/pages/home_page.dart';
@@ -34,7 +33,9 @@ void main() {
 
       final routes = AppRoutes.routes;
 
-      expect(routes[AppRoutes.landing]!(context), isA<LandingPage>());
+      // La bienvenida (LandingPage) es la pantalla inicial de la app
+      // (MaterialApp.home), por eso '/' no está en el mapa de rutas.
+      expect(routes.containsKey(AppRoutes.landing), isFalse);
       expect(routes[AppRoutes.login]!(context), isA<LoginPage>());
       expect(routes[AppRoutes.register]!(context), isA<RegisterPage>());
       expect(routes[AppRoutes.home]!(context), isA<HomePage>());

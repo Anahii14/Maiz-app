@@ -10,6 +10,20 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
+    function validAnalysis(d) {
+      return d.keys().hasOnly(['plantId', 'plantName', 'type', 'label', 'disease',
+                               'confidence', 'affectionPercent', 'severity',
+                               'date', 'photo'])
+        && d.label is string && d.label.size() > 0
+        && d.confidence is number && d.confidence >= 0 && d.confidence <= 1
+        && (d.affectionPercent == null
+            || (d.affectionPercent is number
+                && d.affectionPercent >= 0 && d.affectionPercent <= 100))
+        && (d.severity == null || d.severity in ['leve', 'moderada', 'severa'])
+        && d.date == request.time
+        && (d.photo == null || (d.photo is bytes && d.photo.size() < 900 * 1024));
+    }
+
     // Perfil del usuario: users/{uid}
     match /users/{userId} {
       allow read: if isOwner(userId);
@@ -27,8 +41,10 @@ service cloud.firestore {
       }
 
       // Análisis de hojas: users/{uid}/analyses/{analysisId}
+      // Solo se aceptan análisis con el formato del modelo real.
       match /analyses/{analysisId} {
-        allow read, create: if isOwner(userId);
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && validAnalysis(request.resource.data);
         allow update, delete: if false;
       }
     }

@@ -1,0 +1,4 @@
+Hoja_sana
+Mancha_Gris_de_la_Hoja
+Mancha_de_Asfalto
+Roya_del_Maíz

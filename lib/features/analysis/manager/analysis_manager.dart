@@ -3,23 +3,33 @@ import 'dart:async';
 import 'package:command_it/command_it.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:watch_it/watch_it.dart';
 
 import '../../plants/manager/plants_manager.dart';
 import '../../plants/model/plant_dto.dart';
 import '../../plants/model/plant_status.dart';
 import '../model/analysis_dto.dart';
+import '../model/leaf_diagnosis.dart';
 import '../services/analysis_data_source.dart';
-import '../services/analysis_engine.dart';
+import '../services/leaf_analyzer.dart';
 
 class AnalysisRunRequest {
   final String plantId;
-  final AnalysisType type;
   final XFile image;
 
-  const AnalysisRunRequest({
-    required this.plantId,
-    required this.type,
-    required this.image,
+  const AnalysisRunRequest({required this.plantId, required this.image});
+}
+
+/// Resultado de un análisis: el diagnóstico y, si se guardó, su id.
+class AnalysisOutcome {
+  final LeafDiagnosis diagnosis;
+  final String plantName;
+  final String? savedId;
+
+  const AnalysisOutcome({
+    required this.diagnosis,
+    required this.plantName,
+    this.savedId,
   });
 }
 
@@ -28,64 +38,92 @@ class AnalysisManager {
     required String userId,
     required AnalysisDataSource service,
     required PlantsManager plantsManager,
-  })  : _userId = userId,
-        _service = service,
-        _plantsManager = plantsManager;
+    LeafAnalyzer? analyzer,
+  }) : _userId = userId,
+       _service = service,
+       _plantsManager = plantsManager,
+       _analyzerOverride = analyzer;
 
   final String _userId;
   final AnalysisDataSource _service;
   final PlantsManager _plantsManager;
+  final LeafAnalyzer? _analyzerOverride;
+
+  LeafAnalyzer get _analyzer => _analyzerOverride ?? di<LeafAnalyzer>();
 
   final analyses = ValueNotifier<List<AnalysisEntry>>([]);
 
   StreamSubscription<List<AnalysisEntry>>? _subscription;
 
-  late final runAnalysisCommand = Command.createAsync<AnalysisRunRequest, String>(
-    (request) async {
-      final plantEntry = _plantsManager.plants.value
-          .firstWhere((entry) => entry.id == request.plantId);
-      final result = AnalysisEngine.analyze(
-        type: request.type,
-        imageName: request.image.name,
+  late final runAnalysisCommand =
+      Command.createAsync<AnalysisRunRequest, AnalysisOutcome?>(
+        analyze,
+        initialValue: null,
       );
-      final dto = AnalysisDto(
+
+  /// Analiza la foto, guarda el resultado y actualiza el estado de la planta.
+  Future<AnalysisOutcome> analyze(AnalysisRunRequest request) async {
+    final plantEntry = _plantsManager.plants.value.firstWhere(
+      (entry) => entry.id == request.plantId,
+    );
+    final bytes = await request.image.readAsBytes();
+    final diagnosis = await _analyzer.analyze(bytes);
+
+    // "No reconocido" no se guarda: no hay un diagnóstico válido.
+    if (diagnosis.status == DiagnosisStatus.notRecognized) {
+      return AnalysisOutcome(
+        diagnosis: diagnosis,
+        plantName: plantEntry.dto.name,
+      );
+    }
+
+    final id = await _service.create(
+      _userId,
+      AnalysisDto.fromDiagnosis(
+        diagnosis: diagnosis,
         plantId: request.plantId,
         plantName: plantEntry.dto.name,
-        type: request.type,
-        imageName: request.image.name,
-        result: result.summary,
-        disease: result.disease,
-        affectionPercent: result.affectionPercent,
-        date: DateTime.now(),
-        recommendations: result.recommendations,
+      ),
+    );
+
+    final newStatus = _statusFor(diagnosis);
+    if (newStatus != plantEntry.dto.status) {
+      _plantsManager.savePlantCommand.run(
+        PlantSaveRequest(
+          id: request.plantId,
+          dto: plantEntry.dto.copyWith(status: newStatus),
+        ),
       );
-      final id = await _service.create(_userId, dto);
+    }
 
-      if (!result.isHealthy) {
-        final newStatus = result.affectionPercent >= 60
-            ? PlantStatus.critico
-            : result.affectionPercent >= 30
-                ? PlantStatus.enfermo
-                : PlantStatus.enObservacion;
-        _plantsManager.savePlantCommand.run(
-          PlantSaveRequest(
-            id: request.plantId,
-            dto: plantEntry.dto.copyWith(status: newStatus),
-          ),
-        );
-      }
+    return AnalysisOutcome(
+      diagnosis: diagnosis,
+      plantName: plantEntry.dto.name,
+      savedId: id,
+    );
+  }
 
-      return id;
-    },
-    initialValue: '',
-  );
+  /// Estado de la planta según el último análisis.
+  static PlantStatus _statusFor(LeafDiagnosis d) {
+    if (d.status == DiagnosisStatus.healthy) return PlantStatus.saludable;
+    return switch (d.severity) {
+      Severity.severa => PlantStatus.critico,
+      Severity.moderada => PlantStatus.enfermo,
+      _ => PlantStatus.enObservacion,
+    };
+  }
 
   Future<AnalysisManager> init() async {
-    _subscription = _service.watchAnalyses(_userId).listen((entries) {
-      analyses.value = entries;
-    }, onError: (_) {
-      analyses.value = const [];
-    });
+    _subscription = _service
+        .watchAnalyses(_userId)
+        .listen(
+          (entries) {
+            analyses.value = entries;
+          },
+          onError: (_) {
+            analyses.value = const [];
+          },
+        );
     return this;
   }
 

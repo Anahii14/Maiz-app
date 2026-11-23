@@ -4,6 +4,8 @@ import 'package:watch_it/watch_it.dart';
 import '../../../_shared/widgets/authenticated_shell.dart';
 import '../../analysis/model/analysis_dto.dart';
 import '../../camera/manager/camera_manager.dart';
+import '../manager/analysis_manager.dart';
+import 'analysis_result_page.dart';
 
 enum _AnalysisStep { selectPlant, uploadImage }
 
@@ -32,6 +34,33 @@ class _AnalysisFlowPageState extends State<AnalysisFlowPage> {
     }
   }
 
+  /// Ejecuta el análisis real y abre la pantalla de resultados.
+  Future<void> _analyze() async {
+    final manager = di<CameraManager>();
+    AnalysisOutcome? outcome;
+    try {
+      outcome = await manager.analyzeCommand.runAsync();
+    } catch (_) {
+      return; // el error ya se mostró en un aviso
+    }
+    if (outcome == null || !mounted) return;
+    final saved = outcome.savedId != null;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AnalysisResultPage(
+          result: ResultView.fromDiagnosis(
+            outcome!.diagnosis,
+            outcome.plantName,
+          ),
+        ),
+      ),
+    );
+    if (saved && mounted) {
+      setState(() => _step = _AnalysisStep.selectPlant);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final manager = di<CameraManager>();
@@ -39,12 +68,16 @@ class _AnalysisFlowPageState extends State<AnalysisFlowPage> {
     final plants = watchValue((CameraManager m) => m.plants);
     final plantId = watchValue((CameraManager m) => m.selectedPlantId);
     final image = watchValue((CameraManager m) => m.capturedImage);
-    final isPickingCamera =
-        watchValue((CameraManager m) => m.pickFromCameraCommand.isRunning);
-    final isPickingGallery =
-        watchValue((CameraManager m) => m.pickFromGalleryCommand.isRunning);
-    final isAnalyzing =
-        watchValue((CameraManager m) => m.analyzeCommand.isRunning);
+    final preview = watchValue((CameraManager m) => m.capturedPreview);
+    final isPickingCamera = watchValue(
+      (CameraManager m) => m.pickFromCameraCommand.isRunning,
+    );
+    final isPickingGallery = watchValue(
+      (CameraManager m) => m.pickFromGalleryCommand.isRunning,
+    );
+    final isAnalyzing = watchValue(
+      (CameraManager m) => m.analyzeCommand.isRunning,
+    );
     final colors = Theme.of(context).colorScheme;
 
     final isLeaf = type == AnalysisType.hoja;
@@ -53,146 +86,188 @@ class _AnalysisFlowPageState extends State<AnalysisFlowPage> {
         : 'Sube una imagen aérea o panorámica del terreno.';
 
     final content = ListView(
-          padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          'Nuevo análisis',
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Detecta enfermedades en tus cultivos.',
+          style: Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(color: colors.onSurfaceVariant),
+        ),
+        const SizedBox(height: 16),
+        Row(
           children: [
-          Text(
-            'Nuevo análisis',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Detecta enfermedades en tus cultivos.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _TypeCard(
-                  title: 'Hoja individual',
-                  subtitle: 'Analiza una hoja específica con mayor detalle.',
-                  icon: Icons.eco_rounded,
-                  selected: isLeaf,
-                  onTap: () => manager.setAnalysisType(AnalysisType.hoja),
-                ),
+            Expanded(
+              child: _TypeCard(
+                title: 'Hoja individual',
+                subtitle: 'Analiza una hoja específica con el modelo de IA.',
+                icon: Icons.eco_rounded,
+                selected: isLeaf,
+                onTap: () => manager.setAnalysisType(AnalysisType.hoja),
               ),
-              const SizedBox(width: 12),
-              Expanded(
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Opacity(
+                opacity: 0.5,
                 child: _TypeCard(
                   title: 'Terreno completo',
-                  subtitle: 'Imagen aérea o panorámica zonificada.',
+                  subtitle:
+                      'Próximamente: el modelo actual solo reconoce hojas.',
                   icon: Icons.landscape_rounded,
-                  selected: !isLeaf,
-                  onTap: () => manager.setAnalysisType(AnalysisType.terreno),
+                  selected: false,
+                  onTap: () {},
                 ),
               ),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        if (_step == _AnalysisStep.selectPlant) ...[
+          Text(
+            'Selecciona una planta',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 24),
-          if (_step == _AnalysisStep.selectPlant) ...[
+          const SizedBox(height: 12),
+          if (plants.isEmpty)
             Text(
-              'Selecciona una planta',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            if (plants.isEmpty)
-              Text(
-                'Registra una planta antes de analizar.',
-                style: TextStyle(color: colors.onSurfaceVariant),
-              )
-            else
-              DropdownButtonFormField<String>(
-                initialValue: plantId,
-                decoration: const InputDecoration(
-                  labelText: 'Plantas registradas',
-                ),
-                items: plants
-                    .map(
-                      (e) => DropdownMenuItem(
-                        value: e.id,
-                        child: Text(e.dto.name),
-                      ),
-                    )
-                    .toList(),
-                onChanged: manager.selectPlant,
+              'Registra una planta antes de analizar.',
+              style: TextStyle(color: colors.onSurfaceVariant),
+            )
+          else
+            DropdownButtonFormField<String>(
+              initialValue: plantId,
+              decoration: const InputDecoration(
+                labelText: 'Plantas registradas',
               ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: plantId == null
-                  ? null
-                  : () => setState(() => _step = _AnalysisStep.uploadImage),
-              child: const Text('Siguiente'),
+              items: plants
+                  .map(
+                    (e) =>
+                        DropdownMenuItem(value: e.id, child: Text(e.dto.name)),
+                  )
+                  .toList(),
+              onChanged: manager.selectPlant,
             ),
-          ] else ...[
-            TextButton.icon(
-              onPressed: () => setState(() => _step = _AnalysisStep.selectPlant),
-              icon: const Icon(Icons.arrow_back_rounded),
-              label: const Text('Volver'),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: plantId == null
+                ? null
+                : () => setState(() => _step = _AnalysisStep.uploadImage),
+            child: const Text('Siguiente'),
+          ),
+        ] else ...[
+          TextButton.icon(
+            onPressed: () => setState(() => _step = _AnalysisStep.selectPlant),
+            icon: const Icon(Icons.arrow_back_rounded),
+            label: const Text('Volver'),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            uploadHint,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colors.secondaryContainer.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(height: 8),
-            Text(
-              uploadHint,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.tips_and_updates_outlined, color: colors.secondary),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Para un resultado más preciso: una sola hoja, de cerca, '
+                    'bien iluminada y enfocada, ocupando casi toda la foto y '
+                    'con fondo despejado (sin hojas secas ni tierra alrededor).',
                   ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _UploadOption(
+            icon: Icons.photo_camera_rounded,
+            label: 'Tomar fotografía',
+            loading: isPickingCamera,
+            onTap: isPickingCamera
+                ? null
+                : () => manager.pickFromCameraCommand.run(),
+          ),
+          const SizedBox(height: 10),
+          _UploadOption(
+            icon: Icons.photo_library_rounded,
+            label: 'Subir desde galería',
+            loading: isPickingGallery,
+            onTap: isPickingGallery
+                ? null
+                : () => manager.pickFromGalleryCommand.run(),
+          ),
+          if (image != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: colors.primaryContainer.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle_rounded, color: colors.primary),
+                      const SizedBox(width: 10),
+                      const Expanded(child: Text('Foto lista para analizar')),
+                    ],
+                  ),
+                  if (preview != null) ...[
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.memory(
+                        preview,
+                        height: 220,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        gaplessPlayback: true,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
             const SizedBox(height: 16),
-            _UploadOption(
-              icon: Icons.photo_camera_rounded,
-              label: 'Tomar fotografía',
-              loading: isPickingCamera,
-              onTap: isPickingCamera
-                  ? null
-                  : () => manager.pickFromCameraCommand.run(),
+            FilledButton.icon(
+              onPressed: isAnalyzing ? null : _analyze,
+              icon: isAnalyzing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.biotech_rounded),
+              label: Text(isAnalyzing ? 'Analizando...' : 'Iniciar análisis'),
             ),
-            const SizedBox(height: 10),
-            _UploadOption(
-              icon: Icons.photo_library_rounded,
-              label: 'Subir desde galería',
-              loading: isPickingGallery,
-              onTap: isPickingGallery
-                  ? null
-                  : () => manager.pickFromGalleryCommand.run(),
-            ),
-            if (image != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: colors.primaryContainer.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle_rounded, color: colors.primary),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text('Imagen: ${image.name}')),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: isAnalyzing
-                    ? null
-                    : () {
-                        manager.analyzeCommand.run();
-                        if (!widget.embedded && context.mounted) {
-                          Navigator.pop(context);
-                        }
-                      },
-                child: Text(isAnalyzing ? 'Analizando...' : 'Iniciar análisis'),
-              ),
-            ],
           ],
-          ],
-        );
+        ],
+      ],
+    );
 
     if (widget.embedded) return content;
 
@@ -245,16 +320,16 @@ class _TypeCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
               ),
             ],
           ),

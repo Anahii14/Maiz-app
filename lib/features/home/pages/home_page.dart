@@ -219,7 +219,7 @@ class _DashboardView extends WatchingWidget {
           children: [
             _ActionTile(
               title: 'Analizar',
-              subtitle: 'Hoja o terreno',
+              subtitle: 'Hoja de maíz con IA',
               icon: Icons.biotech_rounded,
               onTap: () => onOpenTab(2),
             ),
@@ -291,8 +291,7 @@ class _DashboardView extends WatchingWidget {
                   ),
                   title: Text(entry.dto.plantName),
                   subtitle: Text(
-                    '${entry.dto.disease} · '
-                    '${entry.dto.affectionPercent.toStringAsFixed(0)}% · '
+                    '${entry.dto.summary} · '
                     '${_formatDate(entry.dto.date)}',
                   ),
                   trailing: Chip(label: Text(entry.dto.type.label)),

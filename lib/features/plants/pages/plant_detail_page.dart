@@ -121,10 +121,8 @@ class PlantDetailPage extends WatchingWidget {
                     a.isHealthy ? Icons.check_circle_outline : Icons.warning_amber,
                     color: a.isHealthy ? colors.primary : colors.error,
                   ),
-                  title: Text(a.disease),
-                  subtitle: Text(
-                    '${a.affectionPercent.toStringAsFixed(0)}% · ${_formatDate(a.date)}',
-                  ),
+                  title: Text(a.summary),
+                  subtitle: Text(_formatDate(a.date)),
                 ),
               ),
             const SizedBox(height: 16),
