@@ -23,7 +23,10 @@ void main() {
       expect(find.text('Hola de nuevo'), findsOneWidget);
       expect(find.text('Correo electrónico'), findsOneWidget);
       expect(find.text('Contraseña'), findsOneWidget);
-      expect(find.widgetWithText(ElevatedButton, 'Iniciar sesión'), findsOneWidget);
+      expect(
+        find.widgetWithText(ElevatedButton, 'Iniciar sesión'),
+        findsOneWidget,
+      );
       expect(find.text('Regístrate'), findsOneWidget);
     });
 
@@ -52,7 +55,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Crear cuenta'), findsWidgets);
-      expect(find.widgetWithText(ElevatedButton, 'Crear cuenta'), findsOneWidget);
+      expect(
+        find.widgetWithText(ElevatedButton, 'Crear cuenta'),
+        findsOneWidget,
+      );
     });
   });
 }

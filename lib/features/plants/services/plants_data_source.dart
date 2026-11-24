@@ -9,9 +9,5 @@ abstract class PlantsDataSource {
 
   Future<void> delete(String userId, String plantId);
 
-  Future<void> updateWatering(
-    String userId,
-    String plantId,
-    PlantDto updated,
-  );
+  Future<void> updateWatering(String userId, String plantId, PlantDto updated);
 }

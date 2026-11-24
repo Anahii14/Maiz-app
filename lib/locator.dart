@@ -4,10 +4,12 @@ import 'package:get_it/get_it.dart';
 
 import '_shared/services/interaction_manager.dart';
 import 'features/ai/services/ai_chat_service.dart';
+import 'features/ai/services/chat_ai_client.dart';
 import 'features/analysis/services/analysis_data_source.dart';
 import 'features/analysis/services/analysis_firestore_service.dart';
 import 'features/analysis/services/disease_classifier.dart';
 import 'features/analysis/services/leaf_analyzer.dart';
+import 'features/analysis/recommendations/recommendations_data.dart';
 import 'features/auth/manager/auth_manager.dart';
 import 'features/auth/services/firebase_auth_service.dart';
 import 'features/camera/services/camera_service.dart';
@@ -38,8 +40,16 @@ void configureDependencies() {
   getIt.registerLazySingleton<LeafAnalyzer>(
     () => LeafAnalyzer(createDiseaseClassifier()),
   );
+  // Textos y dosis de recomendaciones (recomendaciones.json, sin internet).
+  getIt.registerLazySingleton<RecommendationsRepository>(
+    () => RecommendationsRepository(),
+  );
   getIt.registerLazySingleton<CameraService>(() => CameraService());
-  getIt.registerLazySingleton<AiChatService>(() => AiChatService());
+  getIt.registerLazySingleton<AiChatService>(
+    () => AiChatService(repository: getIt<RecommendationsRepository>()),
+  );
+  // Chat con IA real (Gemini vía Firebase AI Logic; sin API key en la app).
+  getIt.registerLazySingleton<ChatAiClient>(() => GeminiChatClient());
   getIt.registerLazySingletonAsync<AuthManager>(
     () => AuthManager(authService: getIt<FirebaseAuthService>()).init(),
     dispose: (manager) => manager.dispose(),

@@ -7,8 +7,8 @@ import '../config/analysis_config.dart';
 
 /// Imagen lista para el análisis.
 class PreparedImage {
-  /// Entrada del modelo: 224 x 224 x 3, float32, RGB, valores 0–255
-  /// (sin dividir entre 255). Orden: fila por fila, píxel por píxel, R G B.
+  /// Entrada del modelo: N x N x 3 float32 (N, orden de color y escala salen
+  /// de modelo_config.json). Orden: fila por fila, píxel por píxel.
   final Float32List modelInput;
 
   /// Imagen reducida para medir el área afectada.
@@ -24,49 +24,78 @@ class PreparedImage {
   });
 }
 
+/// Datos para preparar una foto (se envían a otro hilo con compute).
+class PrepareRequest {
+  final Uint8List bytes;
+  final int inputSize;
+  final bool bgr;
+  final bool divideBy255;
+  final bool applyExif;
+
+  const PrepareRequest({
+    required this.bytes,
+    required this.inputSize,
+    this.bgr = false,
+    this.divideBy255 = false,
+    this.applyExif = true,
+  });
+}
+
 class ImagePreprocessor {
   ImagePreprocessor._();
 
-  /// Decodifica la foto, corrige la orientación EXIF y prepara las 3 versiones.
+  /// Decodifica la foto, aplica la orientación EXIF y prepara las 3 versiones.
   /// Es síncrono y pesado: llamarlo dentro de un isolate (compute).
-  static PreparedImage prepare(Uint8List bytes) {
-    final decoded = img.decodeImage(bytes);
+  static PreparedImage prepare(PrepareRequest request) {
+    final decoded = img.decodeImage(request.bytes);
     if (decoded == null) {
       throw ServerException(
         'No se pudo leer la imagen. Usa una foto en formato JPG o PNG.',
       );
     }
     // Gira la imagen según la etiqueta EXIF (fotos de celular en vertical).
-    final oriented = img.bakeOrientation(decoded);
+    final oriented = request.applyExif ? img.bakeOrientation(decoded) : decoded;
     final rgb = oriented.numChannels == 3 && oriented.format == img.Format.uint8
         ? oriented
         : oriented.convert(format: img.Format.uint8, numChannels: 3);
 
     return PreparedImage(
-      modelInput: toModelInput(rgb),
+      modelInput: toModelInput(
+        rgb,
+        request.inputSize,
+        bgr: request.bgr,
+        divideBy255: request.divideBy255,
+      ),
       segmentationImage: _fit(rgb, AnalysisConfig.segmentationMaxSide),
       storedJpeg: _encodeStored(rgb),
     );
   }
 
-  /// Redimensiona a 224 x 224 (sin recortar, como el entrenamiento en Keras)
-  /// y entrega los píxeles RGB en 0–255 como float32.
-  static Float32List toModelInput(img.Image image) {
-    const size = AnalysisConfig.inputSize;
+  /// Redimensiona DIRECTO a [size] x [size] (sin recortar, como el
+  /// entrenamiento en Keras) y entrega los píxeles en float32.
+  /// Por defecto: orden RGB y valores 0–255 SIN dividir entre 255.
+  static Float32List toModelInput(
+    img.Image image,
+    int size, {
+    bool bgr = false,
+    bool divideBy255 = false,
+  }) {
     final resized = img.copyResize(
       image,
       width: size,
       height: size,
       interpolation: img.Interpolation.linear,
     );
+    final scale = divideBy255 ? 1 / 255 : 1.0;
     final input = Float32List(size * size * 3);
     var i = 0;
     for (var y = 0; y < size; y++) {
       for (var x = 0; x < size; x++) {
         final p = resized.getPixel(x, y);
-        input[i++] = p.r.toDouble();
-        input[i++] = p.g.toDouble();
-        input[i++] = p.b.toDouble();
+        final r = p.r * scale, g = p.g * scale, b = p.b * scale;
+        input[i++] = (bgr ? b : r).toDouble();
+        input[i++] = g.toDouble();
+        input[i++] = (bgr ? r : b).toDouble();
       }
     }
     return input;

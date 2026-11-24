@@ -1,0 +1,124 @@
+{
+  "general": {
+    "titulo_salud": "Cuida tu salud y tu cultivo",
+    "salud": [
+      "Usa guantes, mascarilla, lentes y ropa que cubra todo el cuerpo.",
+      "No fumigues con viento ni cerca de ríos o acequias.",
+      "No comas, no bebas y no fumes mientras fumigas.",
+      "Respeta el período de carencia antes de cosechar.",
+      "Guarda el producto en su envase original, lejos de niños y animales.",
+      "Lávate bien las manos y el cuerpo después de fumigar."
+    ],
+    "alternar_ingredientes": "Alterna los ingredientes activos entre una aplicación y otra para evitar que el hongo se vuelva resistente.",
+    "sin_dosis": "Mira la dosis en la etiqueta de tu producto",
+    "sin_frecuencia": "Mira en la etiqueta cada cuántos días repetir, cuántas veces aplicar y cuántos días esperar antes de cosechar.",
+    "aviso_final": "Estas recomendaciones son una guía. Antes de aplicar, consulta a un ingeniero agrónomo y lee la etiqueta del producto."
+  },
+  "enfermedades": {
+    "Roya_del_Maíz": {
+      "nombre": "Roya del maíz",
+      "nombre_cientifico": "Puccinia sorghi",
+      "resumen_simple": "Hongo que produce pústulas (puntitos) naranjas o marrón rojizo en la hoja.",
+      "acciones_leve": [
+        "Revisa esta planta cada 3 o 4 días.",
+        "Mira también las plantas vecinas.",
+        "Mejora la aireación: no siembres muy junto.",
+        "Evita el exceso de humedad: no riegues por aspersión en la tarde.",
+        "Aplica fungicida solo si las manchas aumentan."
+      ],
+      "acciones_moderada_severa": [
+        "Aplica el control químico pronto.",
+        "Revisa todo el lote, planta por planta.",
+        "Protege las hojas de arriba: no dejes que la roya suba.",
+        "Vuelve a revisar 7 a 10 días después de aplicar."
+      ],
+      "prevencion": [
+        "Siembra semillas o híbridos resistentes a la roya.",
+        "Rota cultivos: no siembres maíz sobre maíz.",
+        "Maneja el rastrojo de la campaña anterior.",
+        "Respeta la distancia de siembra recomendada.",
+        "Revisa tu chacra una vez por semana."
+      ],
+      "control_quimico": {
+        "ingredientes_activos": ["Triazoles", "Estrobilurinas"],
+        "tipo": "Fungicida (triazol o estrobilurina). Úsalo si la infección es temprana y severa.",
+        "dosis_por_ha": { "valor": null, "unidad": null },
+        "volumen_caldo_l_ha": null,
+        "intervalo_dias": null,
+        "max_aplicaciones": null,
+        "periodo_carencia_dias": null,
+        "fuente": ""
+      }
+    },
+    "Mancha_Gris_de_la_Hoja": {
+      "nombre": "Mancha gris de la hoja",
+      "nombre_cientifico": "Cercospora zeae-maydis",
+      "resumen_simple": "Hongo que produce manchas alargadas, grises o marrón claro, entre las venas de la hoja.",
+      "acciones_leve": [
+        "Revisa esta planta cada 3 o 4 días.",
+        "Mira también las plantas vecinas.",
+        "Mejora la aireación entre plantas.",
+        "Evita el exceso de humedad en el follaje.",
+        "Aplica fungicida solo si las manchas avanzan."
+      ],
+      "acciones_moderada_severa": [
+        "Aplica el control químico pronto, antes de la floración.",
+        "Revisa todo el lote.",
+        "Protege las hojas de arriba de la mazorca.",
+        "Vuelve a revisar después de aplicar."
+      ],
+      "prevencion": [
+        "Rota cultivos: no siembres maíz sobre maíz.",
+        "Entierra o maneja el rastrojo: ahí vive el hongo.",
+        "Usa semillas o híbridos tolerantes.",
+        "Siembra con buena distancia para que corra el aire.",
+        "Revisa tu chacra una vez por semana."
+      ],
+      "control_quimico": {
+        "ingredientes_activos": ["Estrobilurina + Triazol (mezcla)"],
+        "tipo": "Fungicida en mezcla (estrobilurina + triazol), antes de la floración.",
+        "dosis_por_ha": { "valor": null, "unidad": null },
+        "volumen_caldo_l_ha": null,
+        "intervalo_dias": null,
+        "max_aplicaciones": null,
+        "periodo_carencia_dias": null,
+        "fuente": ""
+      }
+    },
+    "Mancha_de_Asfalto": {
+      "nombre": "Mancha de asfalto",
+      "nombre_cientifico": "Phyllachora maydis",
+      "resumen_simple": "Hongo que produce puntitos negros y brillantes, como gotas de asfalto, en la hoja.",
+      "acciones_leve": [
+        "Revisa esta planta cada 2 o 3 días: esta enfermedad avanza rápido.",
+        "Mira también las plantas vecinas.",
+        "Mejora la aireación entre plantas.",
+        "Evita el exceso de humedad.",
+        "Aplica fungicida solo si los puntos negros aumentan."
+      ],
+      "acciones_moderada_severa": [
+        "Aplica el control químico pronto.",
+        "Revisa todo el lote.",
+        "Actúa antes de que suba a las hojas de arriba.",
+        "Vuelve a revisar después de aplicar."
+      ],
+      "prevencion": [
+        "Rota cultivos para cortar el ciclo del hongo.",
+        "Maneja los restos de la cosecha enferma.",
+        "Usa semillas o híbridos tolerantes.",
+        "Respeta la distancia de siembra.",
+        "Revisa tu chacra una vez por semana."
+      ],
+      "control_quimico": {
+        "ingredientes_activos": ["Estrobilurina + Triazol (mezcla)"],
+        "tipo": "Fungicida en mezcla (estrobilurina + triazol), aplicado a tiempo.",
+        "dosis_por_ha": { "valor": null, "unidad": null },
+        "volumen_caldo_l_ha": null,
+        "intervalo_dias": null,
+        "max_aplicaciones": null,
+        "periodo_carencia_dias": null,
+        "fuente": ""
+      }
+    }
+  }
+}

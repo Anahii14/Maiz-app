@@ -9,6 +9,7 @@ import '../../../_shared/errors/exceptions.dart';
 import '../../../_shared/services/interaction_manager.dart';
 import '../../ai/manager/ai_chat_manager.dart';
 import '../../ai/services/ai_chat_service.dart';
+import '../../ai/services/chat_ai_client.dart';
 import '../../analysis/manager/analysis_manager.dart';
 import '../../analysis/services/analysis_data_source.dart';
 import '../../camera/manager/camera_manager.dart';
@@ -22,7 +23,7 @@ import '../services/firebase_auth_service.dart';
 
 class AuthManager {
   AuthManager({required FirebaseAuthService authService})
-      : _authService = authService;
+    : _authService = authService;
 
   final FirebaseAuthService _authService;
 
@@ -40,28 +41,26 @@ class AuthManager {
     initialValue: AppUser.empty,
   );
 
-  late final registerCommand = Command.createAsync<RegisterRequest, AppUser>(
-    (request) async {
-      final user = await _authService.register(
-        email: request.email.trim(),
-        password: request.password,
-        name: request.name.trim(),
-      );
-      // authStateChanges() se dispara antes de guardar el nombre, así que
-      // actualizamos la sesión con el nombre correcto.
-      await _ensureUserSession(user);
-      return user;
-    },
-    initialValue: AppUser.empty,
-  );
+  late final registerCommand = Command.createAsync<RegisterRequest, AppUser>((
+    request,
+  ) async {
+    final user = await _authService.register(
+      email: request.email.trim(),
+      password: request.password,
+      name: request.name.trim(),
+    );
+    // authStateChanges() se dispara antes de guardar el nombre, así que
+    // actualizamos la sesión con el nombre correcto.
+    await _ensureUserSession(user);
+    return user;
+  }, initialValue: AppUser.empty);
 
-  late final resetPasswordCommand = Command.createAsync<String, bool>(
-    (email) async {
-      await _authService.sendPasswordResetEmail(email);
-      return true;
-    },
-    initialValue: false,
-  );
+  late final resetPasswordCommand = Command.createAsync<String, bool>((
+    email,
+  ) async {
+    await _authService.sendPasswordResetEmail(email);
+    return true;
+  }, initialValue: false);
 
   late final logoutCommand = Command.createAsyncNoParamNoResult(
     () => _authService.logout(),
@@ -176,6 +175,7 @@ class AuthManager {
         chatService: di<AiChatService>(),
         plantsManager: plantsManager,
         analysisManager: analysisManager,
+        aiClient: di.isRegistered<ChatAiClient>() ? di<ChatAiClient>() : null,
       ),
       dispose: (manager) => manager.dispose(),
     );

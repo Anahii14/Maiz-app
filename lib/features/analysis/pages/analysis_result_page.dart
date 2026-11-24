@@ -4,19 +4,31 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../config/disease_catalog.dart';
-import '../config/recommendations.dart';
 import '../model/analysis_dto.dart';
 import '../model/leaf_diagnosis.dart';
+import 'package:watch_it/watch_it.dart';
 
-/// Datos que necesita la pantalla (vienen de un análisis nuevo o del historial).
+import '../../plants/manager/plants_manager.dart';
+import '../../plants/model/plant_status.dart';
+import '../../reports/analysis_report.dart';
+import 'recommendations_page.dart';
+
+/// Datos que necesita la pantalla (de un análisis nuevo o del historial).
 class ResultView {
-  final DiagnosisStatus status;
+  final EstadoDiagnostico status;
   final String label;
   final double confidence;
+  final bool partial;
+  final bool mediumConfidence;
+  final List<ClaseProbable> top2;
   final double? affectedPercent;
   final Severity? severity;
   final Uint8List? photo;
+  final String plantId;
   final String plantName;
+  final int? analysisTimeMs;
+
+  /// Fecha del análisis (si es nuevo, el momento en que se hizo).
   final DateTime? date;
 
   const ResultView({
@@ -24,43 +36,89 @@ class ResultView {
     required this.label,
     required this.confidence,
     required this.plantName,
+    this.plantId = '',
+    this.partial = false,
+    this.mediumConfidence = false,
+    this.top2 = const [],
     this.affectedPercent,
     this.severity,
     this.photo,
+    this.analysisTimeMs,
     this.date,
   });
 
-  factory ResultView.fromDiagnosis(LeafDiagnosis d, String plantName) =>
-      ResultView(
-        status: d.status,
-        label: d.label,
-        confidence: d.confidence,
-        affectedPercent: d.affectedPercent,
-        severity: d.severity,
-        photo: d.photoJpeg,
-        plantName: plantName,
-        date: DateTime.now(),
-      );
+  factory ResultView.fromDiagnosis(
+    LeafDiagnosis d, {
+    required String plantId,
+    required String plantName,
+  }) => ResultView(
+    status: d.status,
+    label: d.label,
+    confidence: d.confidence,
+    partial: d.partial,
+    mediumConfidence: d.mediumConfidence,
+    top2: d.top2,
+    affectedPercent: d.affectedPercent,
+    severity: d.severity,
+    photo: d.photoJpeg,
+    plantId: plantId,
+    plantName: plantName,
+    analysisTimeMs: d.analysisTimeMs,
+    date: DateTime.now(),
+  );
 
   factory ResultView.fromDto(AnalysisDto dto) => ResultView(
-    status: dto.isHealthy ? DiagnosisStatus.healthy : DiagnosisStatus.disease,
+    status: dto.isHealthy ? EstadoDiagnostico.sana : EstadoDiagnostico.enferma,
     label: dto.label,
     confidence: dto.confidence,
+    partial: dto.partial,
+    mediumConfidence: dto.mediumConfidence,
+    top2: dto.top2,
     affectedPercent: dto.affectionPercent,
     severity: dto.severity,
     photo: dto.photo,
+    plantId: dto.plantId,
     plantName: dto.plantName,
+    analysisTimeMs: dto.analysisTimeMs,
     date: dto.date,
   );
 }
 
-/// Colores de la severidad: Leve = verde, Moderada = naranja, Severa = rojo.
+extension ResultViewReport on ResultView {
+  /// Mismos datos que usa el PDF del historial.
+  AnalysisReportItem toReportItem() {
+    PlantStatus? plantStatus;
+    if (di.isRegistered<PlantsManager>()) {
+      for (final p in di<PlantsManager>().plants.value) {
+        if (p.id == plantId) plantStatus = p.dto.status;
+      }
+    }
+    return AnalysisReportItem(
+      plantId: plantId,
+      plantName: plantName,
+      plantStatus: plantStatus,
+      label: label,
+      isHealthy: status == EstadoDiagnostico.sana,
+      partial: partial,
+      confidence: confidence,
+      affectedPercent: affectedPercent,
+      severity: severity,
+      date: date ?? DateTime.now(),
+      photo: photo,
+    );
+  }
+}
+
+/// Colores de la severidad: Leve = verde, Moderada = amarillo, Severa = rojo.
 Color severityColor(Severity? s) => switch (s) {
   Severity.leve => const Color(0xFF2E7D32),
-  Severity.moderada => const Color(0xFFEF6C00),
+  Severity.moderada => const Color(0xFFF9A825),
   Severity.severa => const Color(0xFFC62828),
   null => const Color(0xFF757575),
 };
+
+/// "87 %".
+String percentText(double p) => '${(p * 100).round()} %';
 
 class AnalysisResultPage extends StatelessWidget {
   final ResultView result;
@@ -76,11 +134,20 @@ class AnalysisResultPage extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
               children: switch (result.status) {
-                DiagnosisStatus.disease => _disease(context),
-                DiagnosisStatus.healthy => _healthy(context),
-                DiagnosisStatus.notRecognized => _notRecognized(context),
+                EstadoDiagnostico.enferma => _disease(context),
+                EstadoDiagnostico.sana => _healthy(context),
+                EstadoDiagnostico.noReconocido => _retry(
+                  context,
+                  title: 'No reconocido',
+                  icon: Icons.help_outline_rounded,
+                ),
+                EstadoDiagnostico.noEsHoja => _retry(
+                  context,
+                  title: 'Esto no parece una hoja',
+                  icon: Icons.image_not_supported_outlined,
+                ),
               },
             ),
           ),
@@ -89,79 +156,138 @@ class AnalysisResultPage extends StatelessWidget {
     );
   }
 
-  // ------------------------------------------------------------- Enfermedad
+  // ------------------------------------------------------------- ENFERMA
   List<Widget> _disease(BuildContext context) {
     final info = DiseaseCatalog.of(result.label);
     final text = Theme.of(context).textTheme;
     final percent = result.affectedPercent;
     return [
-      _HeaderCard(
-        color: info.color,
-        icon: info.icon,
-        title: info.name,
-        subtitle: info.scientificName.isEmpty ? null : info.scientificName,
-        caption: 'Planta: ${result.plantName}',
+      // 1. Foto analizada.
+      _Photo(bytes: result.photo, height: 230),
+      const SizedBox(height: 16),
+
+      // 2. Nombre de la enfermedad, grande.
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: info.color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: info.color.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: info.color,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(info.icon, color: Colors.white, size: 38),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    info.name,
+                    style: text.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      height: 1.1,
+                    ),
+                  ),
+                  if (info.scientificName.isNotEmpty)
+                    Text(
+                      info.scientificName,
+                      style: text.bodyMedium?.copyWith(
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  if (result.partial) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Hoja mayormente sana, pero se detectó una zona afectada',
+                      style: text.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
       const SizedBox(height: 16),
+
+      // 3 y 4. Dona con el % afectado + insignia de severidad.
       Card(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 22, 16, 18),
           child: Column(
             children: [
-              if (percent != null) ...[
+              if (percent != null)
                 AffectionGauge(
                   percent: percent,
                   color: severityColor(result.severity),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'No se pudo separar la hoja del fondo para medir el área '
+                    'afectada. Toma la foto más cerca, con la hoja ocupando '
+                    'casi toda la imagen.',
+                    textAlign: TextAlign.center,
+                    style: text.bodyMedium,
+                  ),
                 ),
-                const SizedBox(height: 16),
-                SeverityBadge(severity: result.severity),
-                if (percent < 0.5) ...[
-                  const SizedBox(height: 14),
-                  const _NoVisibleLesionsNote(),
-                ],
-              ] else ...[
-                Icon(
-                  Icons.crop_free_rounded,
-                  size: 48,
-                  color: Theme.of(context).colorScheme.outline,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'No se pudo separar la hoja del fondo para medir el área '
-                  'afectada. Toma la foto más cerca, con la hoja ocupando '
-                  'casi toda la imagen.',
-                  textAlign: TextAlign.center,
-                  style: text.bodyMedium,
-                ),
+              const SizedBox(height: 16),
+              SeverityBadge(severity: result.severity),
+              // 5. Tiempo de análisis (discreto).
+              if (result.analysisTimeMs != null) ...[
+                const SizedBox(height: 14),
+                AnalysisTimeText(ms: result.analysisTimeMs!),
               ],
-              const SizedBox(height: 12),
-              _ConfidenceText(confidence: result.confidence),
             ],
           ),
         ),
       ),
-      const SizedBox(height: 16),
-      _Photo(bytes: result.photo),
       const SizedBox(height: 20),
+
+      // 6. Botón grande de recomendaciones.
       FilledButton.icon(
         style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(54),
+          minimumSize: const Size.fromHeight(60),
+          textStyle: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
           ),
         ),
-        onPressed: () => showRecommendations(
+        onPressed: () => Navigator.push(
           context,
-          label: result.label,
-          severity: result.severity,
+          MaterialPageRoute(
+            builder: (_) => RecommendationsPage(
+              label: result.label,
+              severity: result.severity,
+              partial: result.partial,
+              plantId: result.plantId,
+              report: result.toReportItem(),
+            ),
+          ),
         ),
-        icon: const Icon(Icons.medical_services_outlined),
+        icon: const Icon(Icons.medical_services_outlined, size: 26),
         label: const Text('Recomendaciones'),
       ),
+      const SizedBox(height: 28),
+
+      // 7. Datos técnicos del modelo: pequeños y discretos.
+      _ModelDetails(result: result),
     ];
   }
 
-  // -------------------------------------------------------------- Hoja sana
+  // ---------------------------------------------------------------- SANA
   List<Widget> _healthy(BuildContext context) {
     const green = Color(0xFF2E7D32);
     final text = Theme.of(context).textTheme;
@@ -201,8 +327,10 @@ class AnalysisResultPage extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text('Planta: ${result.plantName}', style: text.bodyMedium),
-              const SizedBox(height: 12),
-              _ConfidenceText(confidence: result.confidence),
+              if (result.analysisTimeMs != null) ...[
+                const SizedBox(height: 14),
+                AnalysisTimeText(ms: result.analysisTimeMs!),
+              ],
             ],
           ),
         ),
@@ -212,8 +340,12 @@ class AnalysisResultPage extends StatelessWidget {
     ];
   }
 
-  // ---------------------------------------------------------- No reconocido
-  List<Widget> _notRecognized(BuildContext context) {
+  // ------------------------------------- NO RECONOCIDO / NO ES HOJA
+  List<Widget> _retry(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+  }) {
     final colors = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     return [
@@ -222,20 +354,20 @@ class AnalysisResultPage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
           child: Column(
             children: [
-              Icon(Icons.help_outline_rounded, size: 72, color: colors.outline),
+              Icon(icon, size: 72, color: colors.outline),
               const SizedBox(height: 14),
               Text(
-                'No reconocido',
+                title,
+                textAlign: TextAlign.center,
                 style: text.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'No reconocido, intenta con otra foto (hoja bien iluminada y '
-                'enfocada).',
+                'Acércate a una hoja, con buena luz y enfocada.',
                 textAlign: TextAlign.center,
-                style: text.bodyLarge,
+                style: text.titleMedium,
               ),
               const SizedBox(height: 8),
               Text(
@@ -247,86 +379,94 @@ class AnalysisResultPage extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 16),
-      _Photo(bytes: result.photo),
+      _Photo(bytes: result.photo, height: 260),
       const SizedBox(height: 20),
       FilledButton.icon(
-        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
         onPressed: () => Navigator.pop(context),
         icon: const Icon(Icons.photo_camera_rounded),
-        label: const Text('Intentar con otra foto'),
+        label: const Text('Tomar otra foto'),
       ),
     ];
   }
 }
 
-// ============================================================== Componentes
+// ============================================================ Componentes
 
-class _HeaderCard extends StatelessWidget {
-  final Color color;
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final String caption;
+/// "Análisis en 1.4 s" con ícono de reloj, discreto.
+class AnalysisTimeText extends StatelessWidget {
+  final int ms;
 
-  const _HeaderCard({
-    required this.color,
-    required this.icon,
-    required this.title,
-    required this.caption,
-    this.subtitle,
-  });
+  const AnalysisTimeText({super.key, required this.ms});
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(18),
+    final color = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.schedule_rounded, size: 16, color: color),
+        const SizedBox(width: 6),
+        Text(
+          'Análisis en ${formatAnalysisTime(ms)}',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color),
+        ),
+      ],
+    );
+  }
+}
+
+/// Seguridad del modelo y otras posibilidades: letra pequeña, gris suave.
+/// Son probabilidades del modelo, NO el porcentaje de hoja afectado.
+class _ModelDetails extends StatelessWidget {
+  final ResultView result;
+
+  const _ModelDetails({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final grey = Theme.of(
+      context,
+    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.75);
+    final small = Theme.of(context).textTheme.bodySmall?.copyWith(color: grey);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Seguridad del modelo: ${percentText(result.confidence)}',
+          style: small,
+        ),
+        if (result.top2.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text('Otras posibilidades', style: small),
+          for (final c in result.top2)
+            Padding(
+              padding: const EdgeInsets.only(left: 10, top: 2),
+              child: Text(
+                '• ${DiseaseCatalog.of(c.etiqueta).name}: '
+                '${percentText(c.probabilidad)}',
+                style: small,
+              ),
             ),
-            child: Icon(icon, color: Colors.white, size: 38),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Enfermedad detectada',
-                  style: text.labelLarge?.copyWith(color: color),
+        ],
+        if (result.mediumConfidence) ...[
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline_rounded, size: 16, color: grey),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Confianza media: toma otra foto con buena luz para '
+                  'confirmar',
+                  style: small,
                 ),
-                Text(
-                  title,
-                  style: text.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    height: 1.15,
-                  ),
-                ),
-                if (subtitle != null)
-                  Text(
-                    subtitle!,
-                    style: text.bodyMedium?.copyWith(
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                const SizedBox(height: 2),
-                Text(caption, style: text.bodySmall),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
-      ),
+      ],
     );
   }
 }
@@ -365,7 +505,7 @@ class AffectionGauge extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '${percent.toStringAsFixed(1)}%',
+                  '${percent.toStringAsFixed(1)} %',
                   style: text.displaySmall?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: color,
@@ -395,8 +535,7 @@ class _GaugePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final stroke = size.width * 0.11;
-    final rect = Offset.zero & size;
-    final arcRect = rect.deflate(stroke / 2);
+    final arcRect = (Offset.zero & size).deflate(stroke / 2);
     final base = Paint()
       ..color = track
       ..style = PaintingStyle.stroke
@@ -432,8 +571,8 @@ class SeverityBadge extends StatelessWidget {
     final color = severityColor(severity);
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 10 : 18,
-        vertical: compact ? 4 : 8,
+        horizontal: compact ? 10 : 20,
+        vertical: compact ? 4 : 9,
       ),
       decoration: BoxDecoration(
         color: color,
@@ -444,58 +583,13 @@ class SeverityBadge extends StatelessWidget {
             ? (severity?.label ?? 'Sin medir')
             : 'Severidad: ${severity?.label ?? 'sin medir'}',
         style: TextStyle(
-          color: Colors.white,
+          // Sobre amarillo se lee mejor el texto oscuro.
+          color: severity == Severity.moderada
+              ? const Color(0xFF3E2C00)
+              : Colors.white,
           fontWeight: FontWeight.w700,
-          fontSize: compact ? 12 : 16,
+          fontSize: compact ? 12 : 17,
         ),
-      ),
-    );
-  }
-}
-
-/// El modelo detecta una enfermedad pero no se ven manchas medibles.
-class _NoVisibleLesionsNote extends StatelessWidget {
-  const _NoVisibleLesionsNote();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colors.tertiaryContainer.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline_rounded, color: colors.tertiary),
-          const SizedBox(width: 10),
-          const Expanded(
-            child: Text(
-              'El modelo reconoce la enfermedad, pero no se encontraron '
-              'manchas visibles para medir. Puede ser una etapa muy '
-              'temprana o una confusión del modelo: revisa la hoja en campo '
-              'y repite con otra foto más cercana y nítida.',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ConfidenceText extends StatelessWidget {
-  final double confidence;
-
-  const _ConfidenceText({required this.confidence});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      'Confianza del modelo: ${(confidence * 100).toStringAsFixed(1)}%',
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     );
   }
@@ -503,202 +597,21 @@ class _ConfidenceText extends StatelessWidget {
 
 class _Photo extends StatelessWidget {
   final Uint8List? bytes;
+  final double? height;
 
-  const _Photo({required this.bytes});
+  const _Photo({required this.bytes, this.height});
 
   @override
   Widget build(BuildContext context) {
     if (bytes == null) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Foto analizada',
-          style: Theme.of(
-            context,
-          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: Image.memory(
-            bytes!,
-            width: double.infinity,
-            fit: BoxFit.cover,
-            gaplessPlayback: true,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ========================================================= Recomendaciones
-
-/// Abre la ventana de recomendaciones de la enfermedad detectada.
-Future<void> showRecommendations(
-  BuildContext context, {
-  required String label,
-  required Severity? severity,
-}) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    builder: (_) => DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.85,
-      maxChildSize: 0.95,
-      builder: (context, controller) => RecommendationsView(
-        label: label,
-        severity: severity,
-        controller: controller,
-      ),
-    ),
-  );
-}
-
-class RecommendationsView extends StatelessWidget {
-  final String label;
-  final Severity? severity;
-  final ScrollController? controller;
-
-  const RecommendationsView({
-    super.key,
-    required this.label,
-    required this.severity,
-    this.controller,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final info = DiseaseCatalog.of(label);
-    final recs = Recommendations.byLabel[label];
-    final text = Theme.of(context).textTheme;
-    final chemicalFirst = Recommendations.chemicalRecommended(severity);
-    final color = severityColor(severity);
-
-    final prevention = _Section(
-      icon: Icons.visibility_outlined,
-      title: 'Monitoreo y prevención',
-      items: recs?.prevention ?? const [],
-      color: const Color(0xFF2E7D32),
-    );
-    final chemical = _Section(
-      icon: Icons.science_outlined,
-      title: chemicalFirst
-          ? 'Control químico recomendado'
-          : 'Control químico (solo si la enfermedad avanza)',
-      items: recs?.chemical ?? const [],
-      color: chemicalFirst ? color : const Color(0xFF757575),
-    );
-
-    return ListView(
-      controller: controller,
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-      children: [
-        Text(
-          'Recomendaciones',
-          style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '${info.name}'
-          '${info.scientificName.isEmpty ? '' : ' (${info.scientificName})'}',
-          style: text.titleMedium?.copyWith(color: info.color),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withValues(alpha: 0.4)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.priority_high_rounded, color: color),
-              const SizedBox(width: 10),
-              Expanded(child: Text(Recommendations.emphasisFor(severity))),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        if (recs == null)
-          const Text('No hay recomendaciones cargadas para esta clase.')
-        else if (chemicalFirst) ...[
-          chemical,
-          prevention,
-        ] else ...[
-          prevention,
-          chemical,
-        ],
-        const Divider(height: 32),
-        _Section(
-          icon: Icons.warning_amber_rounded,
-          title: 'Advertencias importantes',
-          items: Recommendations.warnings,
-          color: const Color(0xFFB26A00),
-        ),
-      ],
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final List<String> items;
-  final Color color;
-
-  const _Section({
-    required this.icon,
-    required this.title,
-    required this.items,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: text.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ...items.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 6, left: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 7, right: 10),
-                    child: Icon(Icons.circle, size: 7, color: color),
-                  ),
-                  Expanded(child: Text(item, style: text.bodyMedium)),
-                ],
-              ),
-            ),
-          ),
-        ],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Image.memory(
+        bytes!,
+        width: double.infinity,
+        height: height,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
       ),
     );
   }

@@ -20,10 +20,8 @@ class PlantsFirestoreService implements PlantsDataSource {
         .map(
           (snapshot) => snapshot.docs
               .map(
-                (doc) => PlantEntry(
-                  id: doc.id,
-                  dto: PlantDto.fromMap(doc.data()),
-                ),
+                (doc) =>
+                    PlantEntry(id: doc.id, dto: PlantDto.fromMap(doc.data())),
               )
               .toList(),
         );
@@ -31,10 +29,9 @@ class PlantsFirestoreService implements PlantsDataSource {
 
   @override
   Future<String> create(String userId, PlantDto plant) async {
-    final doc = await _plantsRef(userId).add({
-      ...plant.toMap(),
-      'createdAt': Timestamp.now(),
-    });
+    final doc = await _plantsRef(
+      userId,
+    ).add({...plant.toMap(), 'createdAt': Timestamp.now()});
     return doc.id;
   }
 
@@ -49,11 +46,13 @@ class PlantsFirestoreService implements PlantsDataSource {
   }
 
   @override
-  Future<void> updateWatering(
-    String userId,
-    String plantId,
-    PlantDto updated,
-  ) {
-    return _plantsRef(userId).doc(plantId).update(updated.toMap());
+  Future<void> updateWatering(String userId, String plantId, PlantDto updated) {
+    // Solo se envían los campos del riego (más liviano que toda la planta).
+    return _plantsRef(userId).doc(plantId).update({
+      'lastWateringDate': Timestamp.fromDate(updated.lastWateringDate),
+      'wateringHistory': updated.wateringHistory
+          .map(Timestamp.fromDate)
+          .toList(),
+    });
   }
 }

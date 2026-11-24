@@ -38,27 +38,21 @@ class AnalysisConfig {
   AnalysisConfig._();
 
   // --------------------------------------------------------------------------
-  //  MODELO
+  //  ARCHIVOS DEL MODELO
+  //  El tamaño de entrada, el orden de color, la escala y los nombres de los
+  //  archivos NO se fijan aquí: se leen de modelo_config.json.
   // --------------------------------------------------------------------------
 
-  /// Archivos del modelo dentro de la carpeta assets/.
-  static const modelAsset = 'assets/models/modelo_plantas.tflite';
-  static const labelsAsset = 'assets/models/etiquetas.txt';
+  static const modelsFolder = 'assets/models';
+  static const modelConfigAsset = '$modelsFolder/modelo_config.json';
+  static const recommendationsAsset = '$modelsFolder/recomendaciones.json';
 
-  /// Tamaño de entrada del modelo (224 x 224 píxeles, 3 canales RGB).
-  /// Los valores se entregan en 0–255 como float32 SIN dividir entre 255
-  /// (el modelo normaliza por dentro).
-  static const inputSize = 224;
-
-  /// Etiqueta de la clase "hoja sana" tal como aparece en etiquetas.txt.
-  static const healthyLabel = 'Hoja_sana';
-
-  /// Confianza mínima para aceptar el resultado del modelo (0.70 = 70 %).
-  /// Por debajo de esto se muestra "No reconocido".
-  static const minConfidence = 0.70;
+  /// Núcleos del procesador que usa el modelo. 4 funciona bien en la
+  /// mayoría de celulares (más núcleos = más rápido, hasta cierto punto).
+  static const cpuThreads = 4;
 
   // --------------------------------------------------------------------------
-  //  SEVERIDAD (según el % de área afectada de la hoja)
+  //  SEVERIDAD (solo cuando el estado final es ENFERMA)
   // --------------------------------------------------------------------------
 
   /// Menor a 10 %  → Leve.
@@ -68,7 +62,9 @@ class AnalysisConfig {
   static const severitySevereAbove = 30.0;
 
   // --------------------------------------------------------------------------
-  //  SEGMENTACIÓN DE LA HOJA
+  //  SEGMENTACIÓN HSV DE LA HOJA
+  //  El % afectado se calcula SIEMPRE (salvo "no reconocido" / "no es hoja"),
+  //  también cuando el modelo dice "sana", porque la decisión lo usa.
   // --------------------------------------------------------------------------
 
   /// Lado máximo (en píxeles) de la imagen usada para medir el área.
@@ -93,40 +89,36 @@ class AnalysisConfig {
   /// (la foto está muy lejos o la hoja no se distingue del fondo).
   static const minLeafAreaPercent = 5.0;
 
-  /// Manchas comunes a todas las enfermedades: marrón (tejido muerto)
-  /// y amarillo intenso (clorosis fuerte).
-  static const commonLesionRanges = <HsvRange>[
-    // Marrón / tejido necrótico, de oscuro a marrón claro (beige seco).
+  /// Un hueco dentro de la silueta verde se considera parte de la hoja (una
+  /// mancha) solo si mide como máximo este % de la imagen. Huecos más grandes
+  /// suelen ser tierra o fondo entre hojas y NO se cuentan.
+  static const maxLesionHolePercent = 10.0;
+
+  /// Colores que cuentan como ZONA AFECTADA (con color). Pueden estar también
+  /// en el borde de la hoja.
+  static const lesionRanges = <HsvRange>[
+    // Marrón / tejido muerto, de oscuro a marrón claro (beige seco).
     // En fotos reales el tejido muerto mide H 16–24, S 50–125, V 160–240.
     // S ≥ 45 evita contar reflejos de luz o el fondo blanco.
     HsvRange(hMin: 5, hMax: 26, sMin: 45, vMin: 40, vMax: 240),
-    // Amarillo intenso.
-    HsvRange(hMin: 18, hMax: 23, sMin: 150, vMin: 150),
+    // Naranja / marrón rojizo intenso: pústulas de roya.
+    // En fotos reales las pústulas miden H 20–25, S 150–225, V 80–160.
+    HsvRange(hMin: 0, hMax: 26, sMin: 100, vMin: 50, vMax: 235),
+    HsvRange(hMin: 170, hMax: 179, sMin: 90, vMin: 60, vMax: 235),
+    // Amarillo intenso (clorosis fuerte).
+    HsvRange(hMin: 18, hMax: 26, sMin: 150, vMin: 150),
   ];
 
-  /// Manchas específicas de cada enfermedad (clave = etiqueta del modelo).
-  static const lesionRangesByLabel = <String, List<HsvRange>>{
-    // Roya del maíz: pústulas naranja / marrón rojizo.
-    // En fotos reales las pústulas miden H 20–25, S 150–225, V 80–160.
-    'Roya_del_Maíz': [
-      HsvRange(hMin: 0, hMax: 26, sMin: 100, vMin: 50, vMax: 235),
-      HsvRange(hMin: 170, hMax: 179, sMin: 90, vMin: 60, vMax: 235),
-    ],
-    // Mancha gris: lesiones gris / marrón claro (poca saturación).
-    'Mancha_Gris_de_la_Hoja': [
-      // Gris (sin color). Se limita el brillo para no contar reflejos de luz.
-      HsvRange(sMax: 55, vMin: 80, vMax: 210),
-      // Marrón claro / beige. En fotos reales: H 16–24, S 50–125, V 160–240.
-      HsvRange(hMin: 8, hMax: 26, sMin: 30, sMax: 130, vMin: 110, vMax: 240),
-    ],
-    // Mancha de asfalto: puntos negros brillantes.
-    'Mancha_de_Asfalto': [
-      // Negro / muy oscuro (cualquier tono).
-      HsvRange(vMax: 70),
-      // Marrón muy oscuro alrededor de las manchas.
-      HsvRange(hMin: 0, hMax: 30, sMin: 40, vMax: 95),
-    ],
-  };
+  /// Colores NEUTROS que cuentan como zona afectada SOLO si están rodeados
+  /// por la hoja (nunca en el borde), porque el fondo (sombras, tierra,
+  /// papel) también suele ser gris o negro.
+  static const neutralLesionRanges = <HsvRange>[
+    // Gris (lesiones de mancha gris). Brillo limitado para no contar
+    // reflejos de luz sobre la hoja.
+    HsvRange(sMax: 40, vMin: 80, vMax: 200),
+    // Negro / muy oscuro (puntos de mancha de asfalto).
+    HsvRange(vMax: 60),
+  ];
 
   // --------------------------------------------------------------------------
   //  FOTO GUARDADA EN EL HISTORIAL (Firestore)

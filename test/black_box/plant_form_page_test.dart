@@ -27,7 +27,10 @@ void main() {
 
       expect(find.text('Registrar Planta'), findsWidgets);
       expect(find.text('Nombre *'), findsOneWidget);
-      expect(find.widgetWithText(ElevatedButton, 'Registrar Planta'), findsOneWidget);
+      expect(
+        find.widgetWithText(ElevatedButton, 'Registrar Planta'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('exige nombre antes de guardar', (tester) async {

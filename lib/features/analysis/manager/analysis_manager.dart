@@ -66,11 +66,15 @@ class AnalysisManager {
     final plantEntry = _plantsManager.plants.value.firstWhere(
       (entry) => entry.id == request.plantId,
     );
+    // Reloj monotónico: empieza al recibir la imagen y termina cuando el
+    // resultado final está listo (no incluye tomar la foto ni la pantalla).
+    final clock = Stopwatch()..start();
     final bytes = await request.image.readAsBytes();
-    final diagnosis = await _analyzer.analyze(bytes);
+    final diagnosis = await _analyzer.analyze(bytes, clock: clock);
 
-    // "No reconocido" no se guarda: no hay un diagnóstico válido.
-    if (diagnosis.status == DiagnosisStatus.notRecognized) {
+    // "No reconocido" / "No es hoja" no se guardan: no hay diagnóstico.
+    if (diagnosis.status == EstadoDiagnostico.noReconocido ||
+        diagnosis.status == EstadoDiagnostico.noEsHoja) {
       return AnalysisOutcome(
         diagnosis: diagnosis,
         plantName: plantEntry.dto.name,
@@ -105,7 +109,7 @@ class AnalysisManager {
 
   /// Estado de la planta según el último análisis.
   static PlantStatus _statusFor(LeafDiagnosis d) {
-    if (d.status == DiagnosisStatus.healthy) return PlantStatus.saludable;
+    if (d.status == EstadoDiagnostico.sana) return PlantStatus.saludable;
     return switch (d.severity) {
       Severity.severa => PlantStatus.critico,
       Severity.moderada => PlantStatus.enfermo,

@@ -113,7 +113,9 @@ class _PlantFormPageState extends State<PlantFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isSaving = watchValue((PlantsManager m) => m.savePlantCommand.isRunning);
+    final isSaving = watchValue(
+      (PlantsManager m) => m.savePlantCommand.isRunning,
+    );
     final colors = Theme.of(context).colorScheme;
     final isEditing = widget.initialPlant != null;
 
@@ -229,8 +231,8 @@ class _PlantFormPageState extends State<PlantFormPage> {
                       text: isSaving
                           ? 'Guardando...'
                           : isEditing
-                              ? 'Guardar Cambios'
-                              : 'Registrar Planta',
+                          ? 'Guardar Cambios'
+                          : 'Registrar Planta',
                       onPressed: isSaving ? null : _savePlant,
                     ),
                   ],
@@ -291,8 +293,8 @@ class _PlantFormPageState extends State<PlantFormPage> {
     );
 
     di<PlantsManager>().savePlantCommand.run(
-          PlantSaveRequest(id: widget.plantId, dto: dto),
-        );
+      PlantSaveRequest(id: widget.plantId, dto: dto),
+    );
   }
 }
 

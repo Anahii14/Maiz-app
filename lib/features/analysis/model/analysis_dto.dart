@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../config/analysis_config.dart';
 import '../config/disease_catalog.dart';
 import 'leaf_diagnosis.dart';
 
@@ -31,11 +30,24 @@ class AnalysisDto {
   /// Probabilidad de esa etiqueta según el modelo (0–1).
   final double confidence;
 
-  /// % de área afectada (solo enfermedades; null en hoja sana).
+  /// % de área afectada medido por HSV (en hoja sana se guarda pero no se
+  /// muestra). Nunca es una probabilidad del modelo.
   final double? affectionPercent;
 
   /// Severidad (solo enfermedades; null en hoja sana).
   final Severity? severity;
+
+  /// El modelo dijo "sana" pero se detectó una zona afectada.
+  final bool partial;
+
+  /// La enfermedad ganó con confianza media (< 70 %).
+  final bool mediumConfidence;
+
+  /// Las dos clases más probables según el modelo.
+  final List<ClaseProbable> top2;
+
+  /// Tiempo de análisis en milisegundos.
+  final int? analysisTimeMs;
 
   /// Fecha del análisis (hora del servidor de Firebase).
   final DateTime date;
@@ -53,6 +65,10 @@ class AnalysisDto {
     this.affectionPercent,
     this.severity,
     this.photo,
+    this.partial = false,
+    this.mediumConfidence = false,
+    this.top2 = const [],
+    this.analysisTimeMs,
   });
 
   factory AnalysisDto.fromDiagnosis({
@@ -70,10 +86,14 @@ class AnalysisDto {
       severity: diagnosis.severity,
       date: DateTime.now(),
       photo: diagnosis.photoJpeg,
+      partial: diagnosis.partial,
+      mediumConfidence: diagnosis.mediumConfidence,
+      top2: diagnosis.top2,
+      analysisTimeMs: diagnosis.analysisTimeMs,
     );
   }
 
-  bool get isHealthy => label == AnalysisConfig.healthyLabel;
+  bool get isHealthy => label == claseSana;
 
   /// Nombre legible de la enfermedad (o "Hoja sana").
   String get disease => DiseaseCatalog.of(label).name;
@@ -101,6 +121,13 @@ class AnalysisDto {
       'severity': severity?.name,
       'date': FieldValue.serverTimestamp(),
       'photo': photo == null ? null : Blob(photo!),
+      'parcial': partial,
+      'confianza_media': mediumConfidence,
+      'otras_posibilidades': [
+        for (final c in top2)
+          {'etiqueta': c.etiqueta, 'probabilidad': c.probabilidad},
+      ],
+      'tiempo_analisis_ms': analysisTimeMs,
     };
   }
 
@@ -118,6 +145,17 @@ class AnalysisDto {
       // Mientras el servidor confirma la escritura, la fecha llega vacía.
       date: rawDate is Timestamp ? rawDate.toDate() : DateTime.now(),
       photo: rawPhoto is Blob ? rawPhoto.bytes : null,
+      partial: map['parcial'] == true,
+      mediumConfidence: map['confianza_media'] == true,
+      top2: [
+        for (final c in (map['otras_posibilidades'] as List<dynamic>? ?? []))
+          if (c is Map)
+            ClaseProbable(
+              (c['etiqueta'] ?? '') as String,
+              (c['probabilidad'] as num?)?.toDouble() ?? 0,
+            ),
+      ],
+      analysisTimeMs: (map['tiempo_analisis_ms'] as num?)?.toInt(),
     );
   }
 }

@@ -1,0 +1,616 @@
+{
+  "_instrucciones": "Datos de la Biblioteca. Puedes editar o agregar entradas. tipo: sana | hongo | bacteria | virus | plaga | nutricion | clima. icono: hoja, roya, mancha, puntos, tizon, hongo, agalla, moho, bacteria, virus, gusano, insecto, pulgon, nutriente, agua, sol. etiqueta_modelo: solo si la app la detecta con la foto (igual que en etiquetas.txt). No escribas dosis ni marcas comerciales.",
+  "aviso": "Información general y breve. Antes de aplicar cualquier producto, consulta a un ingeniero agrónomo y lee la etiqueta.",
+  "entradas": [
+    {
+      "id": "hoja_sana",
+      "nombre": "Hoja sana",
+      "nombre_cientifico": "",
+      "tipo": "sana",
+      "icono": "hoja",
+      "color": "#2E7D32",
+      "partes": ["hoja"],
+      "etiqueta_modelo": "Hoja_sana",
+      "resumen": "Así se ve una hoja de maíz sin problemas. Úsala para comparar con tus plantas.",
+      "sintomas": [
+        "Color verde parejo, sin manchas ni puntos.",
+        "Nervaduras rectas y hoja firme.",
+        "Al frotarla no suelta polvillo."
+      ],
+      "causas": [
+        "Buena nutrición del suelo.",
+        "Agua suficiente, sin encharcamiento.",
+        "Plantas bien separadas y con buena ventilación."
+      ],
+      "manejo": [
+        "Sigue revisando tu chacra una vez por semana.",
+        "Analiza con la app cualquier hoja con manchas nuevas."
+      ],
+      "prevencion": [
+        "Rota cultivos y usa semillas de buena calidad.",
+        "Fertiliza según el análisis de suelo."
+      ]
+    },
+    {
+      "id": "roya_comun",
+      "nombre": "Roya común",
+      "nombre_cientifico": "Puccinia sorghi",
+      "tipo": "hongo",
+      "icono": "roya",
+      "color": "#D9640B",
+      "partes": ["hoja"],
+      "etiqueta_modelo": "Roya_del_Maíz",
+      "resumen": "Hongo que forma puntitos (pústulas) de color canela a marrón rojizo en las hojas.",
+      "sintomas": [
+        "Pústulas pequeñas y alargadas, color canela o marrón rojizo, en ambas caras de la hoja.",
+        "Al frotar la hoja, suelta un polvillo color óxido.",
+        "En ataques fuertes, las hojas se amarillan y se secan."
+      ],
+      "causas": [
+        "Las esporas del hongo viajan con el viento desde otros campos.",
+        "Clima fresco (16 a 23 °C) con mucha humedad o rocío."
+      ],
+      "manejo": [
+        "Revisa la planta y sus vecinas cada 3 o 4 días.",
+        "Si las pústulas aumentan antes de la floración, aplica un fungicida con triazoles o estrobilurinas.",
+        "Mira la dosis en la etiqueta de tu producto."
+      ],
+      "prevencion": [
+        "Siembra híbridos o variedades resistentes.",
+        "Siembra en la fecha recomendada para tu zona.",
+        "Elimina plantas de maíz que nacen solas fuera de temporada."
+      ]
+    },
+    {
+      "id": "mancha_gris",
+      "nombre": "Mancha gris de la hoja",
+      "nombre_cientifico": "Cercospora zeae-maydis",
+      "tipo": "hongo",
+      "icono": "mancha",
+      "color": "#607D8B",
+      "partes": ["hoja"],
+      "etiqueta_modelo": "Mancha_Gris_de_la_Hoja",
+      "resumen": "Hongo que produce manchas alargadas y rectangulares, grises o marrón claro, entre las venas.",
+      "sintomas": [
+        "Manchas rectangulares grises o marrón claro, limitadas por las nervaduras.",
+        "Empiezan en las hojas de abajo y suben.",
+        "Las manchas se unen y la hoja se seca antes de tiempo."
+      ],
+      "causas": [
+        "El hongo vive en el rastrojo (restos de la cosecha anterior).",
+        "Muchos días de humedad alta, neblina o rocío.",
+        "Sembrar maíz sobre maíz."
+      ],
+      "manejo": [
+        "Revisa sobre todo las hojas cercanas a la mazorca.",
+        "Si avanza cerca de la floración, aplica un fungicida en mezcla (estrobilurina + triazol).",
+        "Mira la dosis en la etiqueta de tu producto."
+      ],
+      "prevencion": [
+        "Rota cultivos: no siembres maíz sobre maíz.",
+        "Entierra o maneja el rastrojo.",
+        "Usa híbridos tolerantes y buena distancia de siembra."
+      ]
+    },
+    {
+      "id": "mancha_asfalto",
+      "nombre": "Mancha de asfalto",
+      "nombre_cientifico": "Phyllachora maydis",
+      "tipo": "hongo",
+      "icono": "puntos",
+      "color": "#37474F",
+      "partes": ["hoja"],
+      "etiqueta_modelo": "Mancha_de_Asfalto",
+      "resumen": "Hongo que forma puntitos negros, brillantes y abultados, como gotas de asfalto.",
+      "sintomas": [
+        "Puntos negros brillantes y en relieve que no se quitan al frotar.",
+        "A veces con un borde café claro alrededor (\"ojo de pescado\").",
+        "Avanza rápido y puede secar las hojas en pocos días."
+      ],
+      "causas": [
+        "Clima fresco y muy húmedo.",
+        "Muchas horas con las hojas mojadas.",
+        "Restos de plantas enfermas en el campo."
+      ],
+      "manejo": [
+        "Revisa cada 2 o 3 días: esta enfermedad avanza rápido.",
+        "Aplica a tiempo un fungicida en mezcla (estrobilurina + triazol).",
+        "Mira la dosis en la etiqueta de tu producto."
+      ],
+      "prevencion": [
+        "Rota cultivos.",
+        "Usa híbridos tolerantes.",
+        "Fertiliza de forma balanceada, sin exceso de nitrógeno."
+      ]
+    },
+    {
+      "id": "tizon_norte",
+      "nombre": "Tizón foliar del norte",
+      "nombre_cientifico": "Exserohilum turcicum",
+      "tipo": "hongo",
+      "icono": "tizon",
+      "color": "#795548",
+      "partes": ["hoja"],
+      "etiqueta_modelo": null,
+      "resumen": "Hongo que causa manchas grandes y alargadas, en forma de cigarro.",
+      "sintomas": [
+        "Manchas largas (de 2 a 15 cm) en forma de cigarro, color gris verdoso a café.",
+        "Empiezan en las hojas de abajo.",
+        "En ataques fuertes la planta parece quemada."
+      ],
+      "causas": [
+        "El hongo vive en el rastrojo.",
+        "Clima templado (18 a 27 °C) con rocío por las mañanas."
+      ],
+      "manejo": [
+        "Si aparece antes de la floración, aplica un fungicida (triazoles o estrobilurinas).",
+        "Mira la dosis en la etiqueta de tu producto."
+      ],
+      "prevencion": [
+        "Usa híbridos resistentes.",
+        "Rota cultivos y maneja el rastrojo."
+      ]
+    },
+    {
+      "id": "tizon_sur",
+      "nombre": "Tizón foliar del sur",
+      "nombre_cientifico": "Bipolaris maydis",
+      "tipo": "hongo",
+      "icono": "tizon",
+      "color": "#A1887F",
+      "partes": ["hoja"],
+      "etiqueta_modelo": null,
+      "resumen": "Hongo de zonas cálidas que forma manchas pequeñas y rectangulares, color café claro.",
+      "sintomas": [
+        "Manchas café claro con bordes más oscuros, entre las nervaduras.",
+        "Miden hasta 2 o 3 cm de largo.",
+        "Muchas manchas juntas secan la hoja."
+      ],
+      "causas": [
+        "Clima cálido (20 a 32 °C) y húmedo.",
+        "Restos de cosecha infectados."
+      ],
+      "manejo": [
+        "Revisa las hojas de abajo cada semana.",
+        "Si avanza, aplica un fungicida (triazoles o estrobilurinas). Mira la dosis en la etiqueta."
+      ],
+      "prevencion": [
+        "Usa híbridos resistentes.",
+        "Rota cultivos y entierra el rastrojo."
+      ]
+    },
+    {
+      "id": "roya_sur",
+      "nombre": "Roya del sur (roya polisora)",
+      "nombre_cientifico": "Puccinia polysora",
+      "tipo": "hongo",
+      "icono": "roya",
+      "color": "#EF6C00",
+      "partes": ["hoja"],
+      "etiqueta_modelo": null,
+      "resumen": "Roya de zonas cálidas: muchos puntitos naranja claro que aparecen y avanzan muy rápido.",
+      "sintomas": [
+        "Pústulas pequeñas y redondas, naranja claro, muy numerosas.",
+        "Sobre todo en la cara de arriba de la hoja.",
+        "Puede secar las hojas en pocas semanas."
+      ],
+      "causas": [
+        "Clima cálido (25 a 30 °C) y húmedo.",
+        "Esporas que llegan con el viento."
+      ],
+      "manejo": [
+        "Actúa temprano: aplica un fungicida (triazoles o estrobilurinas) apenas la veas.",
+        "Mira la dosis en la etiqueta de tu producto."
+      ],
+      "prevencion": [
+        "Usa híbridos tolerantes.",
+        "Evita siembras muy tardías."
+      ]
+    },
+    {
+      "id": "antracnosis",
+      "nombre": "Antracnosis",
+      "nombre_cientifico": "Colletotrichum graminicola",
+      "tipo": "hongo",
+      "icono": "hongo",
+      "color": "#8D4A2B",
+      "partes": ["hoja", "tallo"],
+      "etiqueta_modelo": null,
+      "resumen": "Hongo que daña hojas y tallos; en el tallo puede causar pudrición y quiebre.",
+      "sintomas": [
+        "Manchas ovaladas café con borde rojizo o amarillo en las hojas.",
+        "Puntitos negros en el centro de las manchas.",
+        "En el tallo, manchas negras brillantes; el tallo se pudre y se quiebra."
+      ],
+      "causas": [
+        "El hongo vive en el rastrojo.",
+        "Tiempo nublado, cálido y húmedo.",
+        "Plantas estresadas (sequía, poca nutrición)."
+      ],
+      "manejo": [
+        "Si hay pudrición de tallo, cosecha a tiempo para evitar que las plantas se caigan.",
+        "En hojas, consulta a tu agrónomo si conviene un fungicida."
+      ],
+      "prevencion": [
+        "Rota cultivos.",
+        "Usa híbridos resistentes.",
+        "Fertiliza de forma balanceada, con suficiente potasio."
+      ]
+    },
+    {
+      "id": "carbon_comun",
+      "nombre": "Carbón común (huitlacoche)",
+      "nombre_cientifico": "Ustilago maydis",
+      "tipo": "hongo",
+      "icono": "agalla",
+      "color": "#455A64",
+      "partes": ["mazorca", "tallo", "hoja"],
+      "etiqueta_modelo": null,
+      "resumen": "Hongo que forma bolsas o tumores (agallas) que luego se llenan de polvo negro.",
+      "sintomas": [
+        "Agallas blancas o plateadas en mazorca, tallo u hojas.",
+        "Con el tiempo se abren y sueltan un polvo negro."
+      ],
+      "causas": [
+        "El hongo vive en el suelo muchos años.",
+        "Entra por heridas: granizo, insectos o golpes."
+      ],
+      "manejo": [
+        "Corta y entierra las agallas antes de que se abran.",
+        "Los fungicidas no sirven para esta enfermedad."
+      ],
+      "prevencion": [
+        "Evita herir las plantas al trabajar.",
+        "Usa nitrógeno sin exceso.",
+        "Usa híbridos tolerantes y rota cultivos."
+      ]
+    },
+    {
+      "id": "pudricion_fusarium",
+      "nombre": "Pudrición de mazorca por Fusarium",
+      "nombre_cientifico": "Fusarium verticillioides",
+      "tipo": "hongo",
+      "icono": "moho",
+      "color": "#AD1457",
+      "partes": ["mazorca"],
+      "etiqueta_modelo": null,
+      "resumen": "Moho en los granos de la mazorca que puede producir sustancias tóxicas (micotoxinas).",
+      "sintomas": [
+        "Moho blanco a rosado en los granos.",
+        "Granos con rayas blancas en forma de estrella.",
+        "Suele empezar donde comieron los gusanos."
+      ],
+      "causas": [
+        "Daño de insectos en la mazorca.",
+        "Calor y sequía en el llenado del grano, seguidos de lluvias."
+      ],
+      "manejo": [
+        "Cosecha a tiempo y seca bien el grano.",
+        "Separa las mazorcas con moho.",
+        "No des grano con moho a personas ni animales."
+      ],
+      "prevencion": [
+        "Controla el gusano de la mazorca y el cogollero.",
+        "Usa híbridos con mazorcas bien cubiertas.",
+        "Guarda el grano seco y en un lugar ventilado."
+      ]
+    },
+    {
+      "id": "achaparramiento",
+      "nombre": "Achaparramiento del maíz",
+      "nombre_cientifico": "Spiroplasma kunkelii (transmitido por la chicharrita Dalbulus maidis)",
+      "tipo": "bacteria",
+      "icono": "bacteria",
+      "color": "#6A1B9A",
+      "partes": ["planta", "hoja", "mazorca"],
+      "etiqueta_modelo": null,
+      "resumen": "Bacteria que transmite un insecto pequeño (la chicharrita). Las plantas quedan bajas y casi sin grano.",
+      "sintomas": [
+        "Plantas pequeñas, con entrenudos cortos.",
+        "Rayas amarillas en la base de las hojas nuevas que luego se ponen rojizas o moradas.",
+        "Muchas mazorquitas pequeñas y con pocos granos."
+      ],
+      "causas": [
+        "La chicharrita pica plantas enfermas y lleva la bacteria a plantas sanas.",
+        "Siembras escalonadas que mantienen maíz en el campo todo el año."
+      ],
+      "manejo": [
+        "No tiene cura: la planta enferma no se recupera.",
+        "Controla la chicharrita en las primeras semanas del cultivo.",
+        "Consulta a tu agrónomo sobre el insecticida adecuado."
+      ],
+      "prevencion": [
+        "Siembra en la fecha recomendada y en bloque con tus vecinos.",
+        "Elimina el maíz que nace solo fuera de temporada.",
+        "Usa híbridos tolerantes."
+      ]
+    },
+    {
+      "id": "mosaico",
+      "nombre": "Mosaico del maíz",
+      "nombre_cientifico": "Virus del mosaico enanizante del maíz (MDMV)",
+      "tipo": "virus",
+      "icono": "virus",
+      "color": "#00838F",
+      "partes": ["hoja", "planta"],
+      "etiqueta_modelo": null,
+      "resumen": "Virus que transmiten los pulgones. Las hojas nuevas se ven manchadas de verde claro y oscuro.",
+      "sintomas": [
+        "Manchitas o rayas de verde claro y verde oscuro (mosaico) en las hojas nuevas.",
+        "Plantas más pequeñas de lo normal.",
+        "Mazorcas pequeñas o mal llenadas."
+      ],
+      "causas": [
+        "Pulgones que pican plantas enfermas y luego plantas sanas.",
+        "Malezas como el sorgo de Alepo, donde vive el virus."
+      ],
+      "manejo": [
+        "No tiene cura.",
+        "Arranca las plantas muy afectadas.",
+        "Controla las malezas alrededor del campo."
+      ],
+      "prevencion": [
+        "Usa híbridos resistentes.",
+        "Elimina el sorgo de Alepo y otras malezas.",
+        "Cuida a los enemigos naturales de los pulgones."
+      ]
+    },
+    {
+      "id": "cogollero",
+      "nombre": "Gusano cogollero",
+      "nombre_cientifico": "Spodoptera frugiperda",
+      "tipo": "plaga",
+      "icono": "gusano",
+      "color": "#5D4037",
+      "partes": ["hoja", "planta"],
+      "etiqueta_modelo": null,
+      "resumen": "La plaga más común del maíz: un gusano que se come las hojas del cogollo (la parte de arriba).",
+      "sintomas": [
+        "Hojas raspadas como \"ventanitas\" transparentes.",
+        "Agujeros en las hojas nuevas del cogollo.",
+        "Excremento como aserrín húmedo dentro del cogollo.",
+        "El gusano tiene una \"Y\" invertida en la cabeza."
+      ],
+      "causas": [
+        "Una polilla pone sus huevos en las hojas.",
+        "Clima cálido y seco."
+      ],
+      "manejo": [
+        "Revisa 20 plantas en distintos puntos de tu chacra.",
+        "Si más de 2 de cada 10 plantas tienen daño fresco, actúa.",
+        "Control biológico: Bacillus thuringiensis o virus de la polilla (baculovirus).",
+        "Si es necesario, insecticidas con spinosad, emamectina benzoato o clorantraniliprol, dirigidos al cogollo. Mira la dosis en la etiqueta."
+      ],
+      "prevencion": [
+        "Siembra todo el lote en pocos días.",
+        "Elimina malezas.",
+        "Cuida a los enemigos naturales: avispitas, tijeretas y chinches depredadoras."
+      ]
+    },
+    {
+      "id": "gusano_mazorca",
+      "nombre": "Gusano de la mazorca",
+      "nombre_cientifico": "Helicoverpa zea",
+      "tipo": "plaga",
+      "icono": "gusano",
+      "color": "#8D6E63",
+      "partes": ["mazorca"],
+      "etiqueta_modelo": null,
+      "resumen": "Gusano que entra por la punta de la mazorca y se come los granos.",
+      "sintomas": [
+        "Punta de la mazorca comida.",
+        "Excremento húmedo entre los granos.",
+        "Los granos dañados se llenan de moho."
+      ],
+      "causas": [
+        "Una polilla pone huevos en los pelos (cabellos) de la mazorca."
+      ],
+      "manejo": [
+        "Revisa las mazorcas cuando salen los pelos.",
+        "Control biológico con Bacillus thuringiensis.",
+        "Consulta a tu agrónomo si el daño es alto."
+      ],
+      "prevencion": [
+        "Usa híbridos con mazorcas bien cubiertas por la chala.",
+        "Cosecha a tiempo."
+      ]
+    },
+    {
+      "id": "barrenador",
+      "nombre": "Barrenador del tallo",
+      "nombre_cientifico": "Diatraea saccharalis",
+      "tipo": "plaga",
+      "icono": "gusano",
+      "color": "#6D4C41",
+      "partes": ["tallo"],
+      "etiqueta_modelo": null,
+      "resumen": "Gusano que hace túneles dentro del tallo; la planta se debilita y se quiebra.",
+      "sintomas": [
+        "Agujeros en el tallo con aserrín.",
+        "Túneles dentro del tallo al cortarlo.",
+        "Plantas quebradas; en plantas jóvenes se seca el cogollo (\"corazón muerto\")."
+      ],
+      "causas": [
+        "Una polilla pone huevos en las hojas y las larvas entran al tallo.",
+        "Restos de cosecha con larvas."
+      ],
+      "manejo": [
+        "Control biológico con avispitas Trichogramma (liberaciones).",
+        "Los insecticidas sirven poco cuando el gusano ya está dentro del tallo."
+      ],
+      "prevencion": [
+        "Destruye o entierra los restos de la cosecha.",
+        "Rota cultivos.",
+        "Siembra en la fecha recomendada."
+      ]
+    },
+    {
+      "id": "pulgon",
+      "nombre": "Pulgón del maíz",
+      "nombre_cientifico": "Rhopalosiphum maidis",
+      "tipo": "plaga",
+      "icono": "pulgon",
+      "color": "#558B2F",
+      "partes": ["hoja", "planta"],
+      "etiqueta_modelo": null,
+      "resumen": "Insectos muy pequeños que chupan la savia y pueden transmitir virus.",
+      "sintomas": [
+        "Grupos de insectos pequeños, verde azulados, en el cogollo y la flor (panoja).",
+        "Hojas pegajosas (melaza) y con un hongo negro encima (fumagina)."
+      ],
+      "causas": [
+        "Clima seco y caluroso.",
+        "Uso excesivo de insecticidas que matan a sus enemigos naturales."
+      ],
+      "manejo": [
+        "Las mariquitas y crisopas se los comen: cuídalas.",
+        "Insecticida solo si hay muchas colonias antes de la floración. Mira la dosis en la etiqueta."
+      ],
+      "prevencion": [
+        "Controla las malezas.",
+        "No abuses de los insecticidas."
+      ]
+    },
+    {
+      "id": "falta_nitrogeno",
+      "nombre": "Falta de nitrógeno",
+      "nombre_cientifico": "Deficiencia de nitrógeno (N)",
+      "tipo": "nutricion",
+      "icono": "nutriente",
+      "color": "#F9A825",
+      "partes": ["hoja"],
+      "etiqueta_modelo": null,
+      "resumen": "Si falta nitrógeno, las hojas de abajo se ponen amarillas en forma de \"V\".",
+      "sintomas": [
+        "Amarillo en forma de \"V\" desde la punta por la vena del centro.",
+        "Empieza en las hojas de abajo.",
+        "Plantas pálidas y pequeñas."
+      ],
+      "causas": [
+        "Suelo pobre o poco abono.",
+        "Lluvias fuertes que lavan el nitrógeno.",
+        "Suelo encharcado o muy seco."
+      ],
+      "manejo": [
+        "Aplica abono nitrogenado dividido en partes durante el crecimiento.",
+        "La cantidad depende de tu suelo: consulta a tu agrónomo."
+      ],
+      "prevencion": [
+        "Haz un análisis de suelo.",
+        "Rota con leguminosas (frijol, haba, arveja).",
+        "Agrega materia orgánica."
+      ]
+    },
+    {
+      "id": "falta_fosforo",
+      "nombre": "Falta de fósforo",
+      "nombre_cientifico": "Deficiencia de fósforo (P)",
+      "tipo": "nutricion",
+      "icono": "nutriente",
+      "color": "#7B1FA2",
+      "partes": ["hoja"],
+      "etiqueta_modelo": null,
+      "resumen": "En plantas jóvenes, las hojas se ponen moradas o rojizas.",
+      "sintomas": [
+        "Hojas con bordes morados o rojizos en plantas jóvenes.",
+        "Crecimiento lento."
+      ],
+      "causas": [
+        "Suelo pobre en fósforo.",
+        "Suelos fríos o ácidos, donde la raíz no lo absorbe bien."
+      ],
+      "manejo": [
+        "Aplica abono con fósforo al momento de la siembra, cerca de la semilla.",
+        "Consulta la cantidad con tu agrónomo."
+      ],
+      "prevencion": [
+        "Haz un análisis de suelo.",
+        "Corrige suelos ácidos con cal (encalado)."
+      ]
+    },
+    {
+      "id": "falta_potasio",
+      "nombre": "Falta de potasio",
+      "nombre_cientifico": "Deficiencia de potasio (K)",
+      "tipo": "nutricion",
+      "icono": "nutriente",
+      "color": "#E65100",
+      "partes": ["hoja", "tallo"],
+      "etiqueta_modelo": null,
+      "resumen": "Los bordes de las hojas de abajo se ponen amarillos y luego se secan.",
+      "sintomas": [
+        "Bordes amarillos y luego secos (quemados) en las hojas de abajo, desde la punta.",
+        "Tallos débiles que se quiebran."
+      ],
+      "causas": [
+        "Suelos pobres o arenosos.",
+        "Retirar todo el rastrojo del campo cada año."
+      ],
+      "manejo": [
+        "Aplica abono con potasio.",
+        "Consulta la cantidad con tu agrónomo."
+      ],
+      "prevencion": [
+        "Haz un análisis de suelo.",
+        "Devuelve el rastrojo al suelo."
+      ]
+    },
+    {
+      "id": "sequia",
+      "nombre": "Estrés por sequía",
+      "nombre_cientifico": "Falta de agua",
+      "tipo": "clima",
+      "icono": "sol",
+      "color": "#FF8F00",
+      "partes": ["hoja", "mazorca"],
+      "etiqueta_modelo": null,
+      "resumen": "Cuando falta agua, las hojas se enrollan y la mazorca llena pocos granos.",
+      "sintomas": [
+        "Hojas enrolladas como una \"piña\" en las horas de calor.",
+        "Color verde grisáceo.",
+        "En la floración los pelos no salen y la mazorca queda con pocos granos."
+      ],
+      "causas": [
+        "Pocas lluvias o riego insuficiente.",
+        "Calor fuerte."
+      ],
+      "manejo": [
+        "Riega profundo, temprano en la mañana o al final de la tarde.",
+        "Da prioridad al riego en la floración y el llenado del grano."
+      ],
+      "prevencion": [
+        "Cubre el suelo con rastrojo para guardar la humedad.",
+        "Agrega materia orgánica.",
+        "Usa variedades tolerantes a la sequía."
+      ]
+    },
+    {
+      "id": "encharcamiento",
+      "nombre": "Exceso de agua (encharcamiento)",
+      "nombre_cientifico": "Falta de aire en la raíz",
+      "tipo": "clima",
+      "icono": "agua",
+      "color": "#0277BD",
+      "partes": ["planta", "raiz"],
+      "etiqueta_modelo": null,
+      "resumen": "Con el suelo encharcado, la raíz no respira y la planta se pone amarilla.",
+      "sintomas": [
+        "Hojas amarillas, sobre todo en plantas jóvenes.",
+        "Plantas marchitas aunque el suelo está mojado.",
+        "Raíces oscuras y con mal olor."
+      ],
+      "causas": [
+        "Lluvias fuertes o riego excesivo.",
+        "Suelos con mal drenaje."
+      ],
+      "manejo": [
+        "Abre zanjas para sacar el agua.",
+        "No riegues hasta que el suelo se seque un poco."
+      ],
+      "prevencion": [
+        "Siembra en surcos altos (camellones) en suelos que se encharcan.",
+        "Mejora el drenaje del terreno."
+      ]
+    }
+  ]
+}

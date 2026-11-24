@@ -23,7 +23,10 @@ void main() {
       expect(find.text('Nombre completo'), findsOneWidget);
       expect(find.text('Correo electrónico'), findsOneWidget);
       expect(find.text('Contraseña (mínimo 6 caracteres)'), findsOneWidget);
-      expect(find.widgetWithText(ElevatedButton, 'Crear cuenta'), findsOneWidget);
+      expect(
+        find.widgetWithText(ElevatedButton, 'Crear cuenta'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('vuelve al login con ya tengo cuenta', (tester) async {

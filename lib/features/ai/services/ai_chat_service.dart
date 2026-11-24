@@ -1,5 +1,6 @@
-import '../../analysis/config/recommendations.dart';
 import '../../analysis/model/analysis_dto.dart';
+import '../../analysis/model/leaf_diagnosis.dart';
+import '../../analysis/recommendations/recommendations_data.dart';
 import '../../plants/model/plant_dto.dart';
 import '../../plants/model/plant_status.dart';
 
@@ -15,8 +16,44 @@ class ChatMessage {
   });
 }
 
-/// Asistente agrónomo contextual. Se puede conectar a una API IA real después.
+/// Respuestas BÁSICAS sin internet (reglas fijas por palabras clave).
+///
+/// El chat usa la IA real (Gemini, ver chat_ai_client.dart). Este servicio
+/// solo se usa: (1) para armar los "Datos de la chacra" que se envían a la
+/// IA y (2) como respaldo cuando no hay internet o la IA falla.
 class AiChatService {
+  AiChatService({this.repository});
+
+  /// Recomendaciones de recomendaciones.json (si ya están cargadas).
+  final RecommendationsRepository? repository;
+
+  RecommendationsData? get recommendations => repository?.cached;
+
+  /// Resumen de la planta elegida y sus últimos análisis, para la IA.
+  String buildContext({
+    PlantDto? plant,
+    List<AnalysisDto> recentAnalyses = const [],
+  }) {
+    if (plant == null) return '';
+    final b = StringBuffer('Datos de la chacra (de la app):\n')
+      ..writeln('- Nombre: ${plant.name}')
+      ..writeln(
+        '- Variedad: ${plant.variety.isNotEmpty ? plant.variety : "no registrada"}',
+      )
+      ..writeln('- Estado: ${plant.status.label}')
+      ..writeln(
+        '- Sembrada el ${_formatDate(plant.plantedDate)} '
+        '(${DateTime.now().difference(plant.plantedDate).inDays} días)',
+      )
+      ..writeln('- Último riego: ${_formatDate(plant.lastWateringDate)}');
+    if (plant.areaHectares > 0) b.writeln('- Área: ${plant.areaHectares} ha');
+    final own = recentAnalyses.where((a) => a.plantName == plant.name).take(3);
+    for (final a in own) {
+      b.writeln('- Análisis del ${_formatDate(a.date)}: ${a.summary}');
+    }
+    return b.toString();
+  }
+
   String generateResponse({
     required String userMessage,
     PlantDto? plant,
@@ -96,10 +133,14 @@ class AiChatService {
 
     final latest = sorted.firstOrNull;
     if (latest != null && !latest.isHealthy) {
-      final recs = Recommendations.byLabel[latest.label];
-      final source = Recommendations.chemicalRecommended(latest.severity)
-          ? recs?.chemical
-          : recs?.prevention;
+      // Mismos textos que la pantalla de recomendaciones (recomendaciones.json).
+      final recs = recommendations?.of(latest.label);
+      final severe =
+          latest.severity == Severity.moderada ||
+          latest.severity == Severity.severa;
+      final source = severe && !latest.partial
+          ? recs?.actionsModerateSevere
+          : recs?.actionsMild;
       final tips = (source ?? const <String>[]).take(3).join('\n• ');
       return 'Para ${latest.disease} detectado en ${latest.plantName}:\n• $tips';
     }

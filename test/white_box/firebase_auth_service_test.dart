@@ -28,10 +28,7 @@ void main() {
     test('mapUser cae en email cuando no hay displayName', () {
       final auth = FirebaseAuthService(
         MockFirebaseAuth(
-          mockUser: MockUser(
-            uid: 'uid-2',
-            email: 'solo@test.com',
-          ),
+          mockUser: MockUser(uid: 'uid-2', email: 'solo@test.com'),
           signedIn: true,
         ),
       );
@@ -46,15 +43,11 @@ void main() {
   group('mapFirebaseAuthError (caja blanca)', () {
     test('traduce codigos conocidos de Firebase', () {
       expect(
-        mapFirebaseAuthError(
-          FirebaseAuthException(code: 'invalid-email'),
-        ),
+        mapFirebaseAuthError(FirebaseAuthException(code: 'invalid-email')),
         'Correo inválido.',
       );
       expect(
-        mapFirebaseAuthError(
-          FirebaseAuthException(code: 'wrong-password'),
-        ),
+        mapFirebaseAuthError(FirebaseAuthException(code: 'wrong-password')),
         'Credenciales incorrectas.',
       );
       expect(
@@ -64,9 +57,7 @@ void main() {
         'Este correo ya está registrado.',
       );
       expect(
-        mapFirebaseAuthError(
-          FirebaseAuthException(code: 'weak-password'),
-        ),
+        mapFirebaseAuthError(FirebaseAuthException(code: 'weak-password')),
         'La contraseña debe tener al menos 6 caracteres.',
       );
     });

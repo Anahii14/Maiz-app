@@ -1,6 +1,10 @@
 import 'dart:typed_data';
 
 import '../config/analysis_config.dart';
+import '../logic/decision.dart';
+
+export '../logic/decision.dart'
+    show EstadoDiagnostico, ClaseProbable, claseSana;
 
 /// Severidad del daño según el % de área afectada (ver AnalysisConfig).
 enum Severity { leve, moderada, severa }
@@ -12,6 +16,7 @@ extension SeverityX on Severity {
     Severity.severa => 'Severa',
   };
 
+  /// < 10 % Leve · 10 % a 30 % Moderada · > 30 % Severa.
   static Severity fromPercent(double percent) {
     if (percent < AnalysisConfig.severityModerateFrom) return Severity.leve;
     if (percent <= AnalysisConfig.severitySevereAbove) return Severity.moderada;
@@ -26,47 +31,66 @@ extension SeverityX on Severity {
   }
 }
 
-enum DiagnosisStatus {
-  /// Confianza menor al umbral: no se muestra ninguna enfermedad.
-  notRecognized,
-
-  /// El modelo reconoce una hoja sana.
-  healthy,
-
-  /// El modelo reconoce una enfermedad.
-  disease,
+/// Formatea el tiempo de análisis: "1.4 s"; si es menor a 1 s, "0.85 s".
+String formatAnalysisTime(int ms) {
+  final seconds = ms / 1000;
+  return seconds < 1
+      ? '${seconds.toStringAsFixed(2)} s'
+      : '${seconds.toStringAsFixed(1)} s';
 }
 
 /// Resultado completo de analizar UNA foto.
 class LeafDiagnosis {
-  final DiagnosisStatus status;
+  final EstadoDiagnostico status;
 
-  /// Etiqueta del modelo con mayor probabilidad (p. ej. "Roya_del_Maíz").
+  /// Enfermedad mostrada (si ENFERMA) o la clase ganadora (en otros casos).
   final String label;
 
-  /// Probabilidad de esa etiqueta (0–1).
+  /// Probabilidad de la clase mostrada.
   final double confidence;
 
-  /// Probabilidad de cada etiqueta, en el orden de etiquetas.txt.
+  /// El modelo dijo "sana" pero se detectó una zona afectada.
+  final bool partial;
+
+  /// La enfermedad ganó con confianza media (< 70 %).
+  final bool mediumConfidence;
+
+  /// Las dos clases más probables.
+  final List<ClaseProbable> top2;
+
+  /// Probabilidad de cada etiqueta (orden de etiquetas.txt).
   final Map<String, double> probabilities;
 
-  /// % de área afectada (1 decimal). Solo para enfermedades; null si la hoja
-  /// no se pudo separar del fondo.
+  /// % de área afectada (HSV, 1 decimal). null si no se midió.
   final double? affectedPercent;
 
-  /// Severidad según [affectedPercent]. Solo para enfermedades.
+  /// Severidad (solo si ENFERMA y el % se pudo medir).
   final Severity? severity;
 
-  /// Foto analizada (JPEG reducido, ya con la orientación corregida).
+  /// Tiempo de análisis en milisegundos (preprocesamiento + inferencia +
+  /// segmentación + decisión).
+  final int analysisTimeMs;
+
+  /// Regla de decisión aplicada (para logs y la tesis).
+  final String rule;
+
+  /// Foto analizada (JPEG reducido, con la orientación ya corregida).
   final Uint8List photoJpeg;
 
   const LeafDiagnosis({
     required this.status,
     required this.label,
     required this.confidence,
+    required this.top2,
     required this.probabilities,
+    required this.analysisTimeMs,
+    required this.rule,
     required this.photoJpeg,
+    this.partial = false,
+    this.mediumConfidence = false,
     this.affectedPercent,
     this.severity,
   });
+
+  bool get isDisease => status == EstadoDiagnostico.enferma;
 }

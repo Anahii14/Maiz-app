@@ -11,7 +11,15 @@ import '../../features/plants/manager/plants_manager.dart';
 class AuthenticatedShell extends WatchingWidget {
   final Widget child;
 
-  const AuthenticatedShell({super.key, required this.child});
+  /// Espacio extra bajo el botón de chat, para que quede encima de una
+  /// barra de navegación inferior y no tape sus botones.
+  final double chatBottomOffset;
+
+  const AuthenticatedShell({
+    super.key,
+    required this.child,
+    this.chatBottomOffset = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +29,7 @@ class AuthenticatedShell extends WatchingWidget {
     return Stack(
       children: [
         child,
-        const FloatingAiChat(),
+        FloatingAiChat(bottomOffset: chatBottomOffset),
       ],
     );
   }

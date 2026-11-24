@@ -3,7 +3,8 @@ import 'package:image_picker/image_picker.dart';
 class CameraService {
   final ImagePicker _picker = ImagePicker();
 
-  /// Lado máximo de la foto. El modelo usa 224 px y el % se mide a 512 px,
+  /// Lado máximo de la foto. El modelo usa 320 px (modelo_config.json) y el
+  /// % se mide a 512 px,
   /// así que 1600 px sobra y evita que celulares básicos se queden sin memoria.
   static const double _maxSide = 1600;
 

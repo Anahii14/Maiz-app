@@ -5,6 +5,7 @@ import '../../../_shared/widgets/authenticated_shell.dart';
 import '../../analysis/model/analysis_dto.dart';
 import '../../camera/manager/camera_manager.dart';
 import '../manager/analysis_manager.dart';
+import '../services/leaf_analyzer.dart';
 import 'analysis_result_page.dart';
 
 enum _AnalysisStep { selectPlant, uploadImage }
@@ -25,6 +26,9 @@ class _AnalysisFlowPageState extends State<AnalysisFlowPage> {
   @override
   void initState() {
     super.initState();
+    // Carga el modelo UNA vez al abrir la cámara/análisis (si ya estaba
+    // cargado, no hace nada), para que la primera foto no espere.
+    if (di.isRegistered<LeafAnalyzer>()) di<LeafAnalyzer>().warmUp();
     if (widget.initialType != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -37,6 +41,7 @@ class _AnalysisFlowPageState extends State<AnalysisFlowPage> {
   /// Ejecuta el análisis real y abre la pantalla de resultados.
   Future<void> _analyze() async {
     final manager = di<CameraManager>();
+    final plantId = manager.selectedPlantId.value ?? '';
     AnalysisOutcome? outcome;
     try {
       outcome = await manager.analyzeCommand.runAsync();
@@ -51,7 +56,8 @@ class _AnalysisFlowPageState extends State<AnalysisFlowPage> {
         builder: (_) => AnalysisResultPage(
           result: ResultView.fromDiagnosis(
             outcome!.diagnosis,
-            outcome.plantName,
+            plantId: plantId,
+            plantName: outcome.plantName,
           ),
         ),
       ),
@@ -64,7 +70,6 @@ class _AnalysisFlowPageState extends State<AnalysisFlowPage> {
   @override
   Widget build(BuildContext context) {
     final manager = di<CameraManager>();
-    final type = watchValue((CameraManager m) => m.analysisType);
     final plants = watchValue((CameraManager m) => m.plants);
     final plantId = watchValue((CameraManager m) => m.selectedPlantId);
     final image = watchValue((CameraManager m) => m.capturedImage);
@@ -80,10 +85,7 @@ class _AnalysisFlowPageState extends State<AnalysisFlowPage> {
     );
     final colors = Theme.of(context).colorScheme;
 
-    final isLeaf = type == AnalysisType.hoja;
-    final uploadHint = isLeaf
-        ? 'Sube o toma una foto de la hoja.'
-        : 'Sube una imagen aérea o panorámica del terreno.';
+    const uploadHint = 'Sube o toma una foto de la hoja.';
 
     final content = ListView(
       padding: const EdgeInsets.all(16),
@@ -102,33 +104,8 @@ class _AnalysisFlowPageState extends State<AnalysisFlowPage> {
           ).textTheme.bodyLarge?.copyWith(color: colors.onSurfaceVariant),
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _TypeCard(
-                title: 'Hoja individual',
-                subtitle: 'Analiza una hoja específica con el modelo de IA.',
-                icon: Icons.eco_rounded,
-                selected: isLeaf,
-                onTap: () => manager.setAnalysisType(AnalysisType.hoja),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Opacity(
-                opacity: 0.5,
-                child: _TypeCard(
-                  title: 'Terreno completo',
-                  subtitle:
-                      'Próximamente: el modelo actual solo reconoce hojas.',
-                  icon: Icons.landscape_rounded,
-                  selected: false,
-                  onTap: () {},
-                ),
-              ),
-            ),
-          ],
-        ),
+        // Solo hay análisis de hojas (el modelo reconoce hojas de maíz).
+        const _LeafModeCard(),
         const SizedBox(height: 24),
         if (_step == _AnalysisStep.selectPlant) ...[
           Text(
@@ -280,60 +257,42 @@ class _AnalysisFlowPageState extends State<AnalysisFlowPage> {
   }
 }
 
-class _TypeCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _TypeCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
+class _LeafModeCard extends StatelessWidget {
+  const _LeafModeCard();
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Material(
-      color: selected ? colors.primaryContainer : colors.surface,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.primaryContainer,
         borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected ? colors.primary : colors.outlineVariant,
-              width: selected ? 2 : 1,
+        border: Border.all(color: colors.primary, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.eco_rounded, color: colors.primary, size: 32),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Análisis de hoja',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Toma una foto de cerca a una sola hoja de maíz, con buena luz.',
+                  style: TextStyle(color: colors.onSurfaceVariant),
+                ),
+              ],
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: colors.primary),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }

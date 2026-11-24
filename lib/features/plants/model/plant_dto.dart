@@ -31,14 +31,20 @@ class PlantDto {
     required this.wateringHistory,
   });
 
-  String get displayLocation =>
-      placeName.isNotEmpty ? placeName : location;
+  String get displayLocation => placeName.isNotEmpty ? placeName : location;
 
   static List<DateTime> mergeWateringHistory({
     required List<DateTime> current,
     required DateTime wateringDate,
   }) {
-    final history = List<DateTime>.from(current)..insert(0, wateringDate);
+    // Un solo riego por día: si ya se regó ese día, no se repite.
+    bool sameDay(DateTime a) =>
+        a.year == wateringDate.year &&
+        a.month == wateringDate.month &&
+        a.day == wateringDate.day;
+    final history = List<DateTime>.from(current)
+      ..removeWhere(sameDay)
+      ..insert(0, wateringDate);
     history.sort((a, b) => b.compareTo(a));
     return history;
   }

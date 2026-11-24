@@ -1,0 +1,13 @@
+{
+  "modelo": "modelo_plantas.tflite",
+  "etiquetas": "etiquetas.txt",
+  "tamano_entrada": 320,
+  "canales": 3,
+  "tipo_dato": "float32",
+  "orden_color": "RGB",
+  "valor_minimo": 0,
+  "valor_maximo": 255,
+  "dividir_entre_255": false,
+  "redimensionado": "directo_sin_recorte",
+  "aplicar_orientacion_exif": true
+}

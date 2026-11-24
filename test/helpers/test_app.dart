@@ -126,11 +126,7 @@ Future<void> pumpTestApp(
   await tester.pumpWidget(
     MaterialApp(
       theme: AppTheme.light,
-      home: SizedBox(
-        width: 480,
-        height: 900,
-        child: home,
-      ),
+      home: SizedBox(width: 480, height: 900, child: home),
     ),
   );
   await tester.pump();
